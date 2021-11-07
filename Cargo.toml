@@ -1,0 +1,8 @@
+[package]
+name = "matryx_generator"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+led_matrix_zmq = { path = "../led_matrix_zmq" }
+rand = "0.8.4"
