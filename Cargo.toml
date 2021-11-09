@@ -5,4 +5,7 @@ edition = "2018"
 
 [dependencies]
 led_matrix_zmq = { path = "../led_matrix_zmq" }
+
+palette = "0.6.0"
 rand = "0.8.4"
+

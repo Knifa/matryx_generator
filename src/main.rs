@@ -3,9 +3,9 @@ mod scenes;
 use led_matrix_zmq::client::{MatrixClient, MatrixClientSettings};
 use std::time;
 
-use scenes::{PlasmaScene};
+use scenes::{WaveScene};
 
-const FRAME_TIME: time::Duration = time::Duration::from_millis(16);
+const FRAME_TIME: time::Duration = time::Duration::from_millis((1000 / 30) as u64);
 
 struct FrameTimer {
     prev_tick: Option<FrameTick>,
@@ -134,7 +134,7 @@ fn main() {
 
     let mut canvas = Canvas::new(64, 32);
     let mut frame_timer = FrameTimer::new();
-    let mut scene = PlasmaScene{};
+    let mut scene = WaveScene::new(&canvas);
 
     loop {
         let tick = frame_timer.tick();
