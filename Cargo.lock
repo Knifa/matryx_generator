@@ -58,6 +58,7 @@ dependencies = [
 [[package]]
 name = "led_matrix_zmq"
 version = "0.1.0"
+source = "git+https://github.com/Knifa/led_matrix_zmq.git#62e8774327e72aeb98ea4cfe39984f3ec3d15fdd"
 dependencies = [
  "zmq",
 ]

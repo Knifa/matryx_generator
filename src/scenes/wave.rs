@@ -38,16 +38,15 @@ impl WaveScene {
                 let index = (y * canvas.width + x) as usize;
                 let value = self.map[index].powf(1.0);
 
-                //let hsv = Hsv::new((value + 0.7) * 360.0, 1.0, value.powf(2.0));
-                //let rgb = Srgb::from_color(hsv);
+                let hsv = Hsv::new((value + 0.5) * 360.0, 1.0, value.powf(2.0));
+                let rgb = Srgb::from_color(hsv);
 
-                let gv = gradient.get(value);
-                let mut hsv = Hsv::from_color(gv);
-                hsv.value *= value.powf(2.0);
+                // let gv = gradient.get(value);
+                // let mut hsv = Hsv::from_color(gv);
+                // hsv.value *= value.powf(2.0);
 
-                let rgb = LinSrgb::from_color(hsv);
-                let rgb = Srgb::from_linear(rgb);
-
+                // let rgb = LinSrgb::from_color(hsv);
+                // let rgb = Srgb::from_linear(rgb);
 
                 canvas.set_pixel(x, y, rgb.red, rgb.green, rgb.blue);
             }
@@ -74,8 +73,8 @@ fn grow_step(x: u32, y: u32, map: &Vec<f32>, canvas: &Canvas) -> f32 {
             let x2 = ((x as i32 + u) % canvas.width as i32).abs() as u32;
             let y2 = ((y as i32 + v) % canvas.height as i32).abs() as u32;
 
-            let dist = (u * u + v * v) as f32;
-            let weight = (1.0 / dist).powf(1.5);
+            let dist = ((u * u + v * v) as f32).sqrt() as f32;
+            let weight = (1.0 / dist).powf(2.0);
 
             let i2 = (y2 * canvas.width + x2) as usize;
             let last_value2 = map[i2];

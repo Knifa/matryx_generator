@@ -4,7 +4,8 @@ version = "0.1.0"
 edition = "2018"
 
 [dependencies]
-led_matrix_zmq = { path = "../led_matrix_zmq" }
+led_matrix_zmq = { git = "https://github.com/Knifa/led_matrix_zmq.git" }
+# led_matrix_zmq = { path = "../led_matrix_zmq" }
 
 palette = "0.6.0"
 rand = "0.8.4"
