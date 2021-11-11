@@ -1,16 +1,17 @@
-use std::ops::Div;
-
-use palette::{FromColor, Gradient, Hsv, LinSrgb, Srgb};
+use palette::{FromColor, Oklch, Srgb};
 use rand::Rng;
 
 use crate::{Canvas, FrameTick, Scene};
 
+const SEARCH_RADIUS: i32 = 2;
+const KERNEL_SIZE: usize = (SEARCH_RADIUS * 2 + 1) as usize;
+
+type Kernel = [[f32; KERNEL_SIZE]; KERNEL_SIZE];
+
 pub struct WaveScene {
     map: Vec<f32>,
-}
-
-fn from_u8_color(r: u8, g: u8, b: u8) -> LinSrgb {
-    LinSrgb::new(r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0)
+    last_map: Vec<f32>,
+    weights: Kernel,
 }
 
 impl WaveScene {
@@ -22,31 +23,26 @@ impl WaveScene {
             *i = rng.gen();
         }
 
-        WaveScene { map }
+        let weights = gen_weights();
+
+        WaveScene {
+            last_map: map.clone(),
+            map,
+            weights,
+        }
     }
 
-    fn draw_map(&self, canvas: &mut Canvas) {
-        let gradient = Gradient::new(vec![
-            from_u8_color(234, 196, 53),
-            from_u8_color(120, 150, 149),
-            from_u8_color(3, 206, 164),
-            from_u8_color(255, 255, 255),
-        ]);
+    fn draw_map(&self, canvas: &mut Canvas, t: f32) {
+        //let median_map = median_filter(&self.map, canvas);
+        let map = &self.map;
 
         for y in 0..canvas.height {
             for x in 0..canvas.width {
                 let index = (y * canvas.width + x) as usize;
-                let value = self.map[index].powf(1.0);
+                let value = map[index].powf(2.0);
 
-                let hsv = Hsv::new((value + 0.5) * 360.0, 1.0, value.powf(2.0));
+                let hsv = Oklch::new(value.powf(1.0), 0.1, (value + t * 0.1) * 360.0);
                 let rgb = Srgb::from_color(hsv);
-
-                // let gv = gradient.get(value);
-                // let mut hsv = Hsv::from_color(gv);
-                // hsv.value *= value.powf(2.0);
-
-                // let rgb = LinSrgb::from_color(hsv);
-                // let rgb = Srgb::from_linear(rgb);
 
                 canvas.set_pixel(x, y, rgb.red, rgb.green, rgb.blue);
             }
@@ -54,75 +50,110 @@ impl WaveScene {
     }
 }
 
-fn grow_step(x: u32, y: u32, map: &Vec<f32>, canvas: &Canvas) -> f32 {
-    const SEARCH_RADIUS: i32 = 4;
+fn gen_weights() -> Kernel {
+    let mut weights = [[0.0_f32; KERNEL_SIZE]; KERNEL_SIZE];
+    for y in -SEARCH_RADIUS..SEARCH_RADIUS + 1 {
+        for x in -SEARCH_RADIUS..SEARCH_RADIUS + 1 {
+            let ix = (x + SEARCH_RADIUS) as usize;
+            let iy = (y + SEARCH_RADIUS) as usize;
+
+            let dist = (x * x + y * y) as f32;
+            let weight = (1.0 / dist).powf(0.1);
+
+            weights[iy][ix] = weight;
+        }
+    }
+    weights
+}
+
+fn grow_step(x: u32, y: u32, map: &Vec<f32>, canvas: &Canvas, weights: &Kernel) -> f32 {
     let mut rng = rand::thread_rng();
 
     let i = (y * canvas.width + x) as usize;
     let mut val = map[i];
 
     let mut n = 0.0;
-    let mut cum = 0.0;
+    let mut c = 0.0;
 
-    for u in -SEARCH_RADIUS..SEARCH_RADIUS {
-        for v in -SEARCH_RADIUS..SEARCH_RADIUS {
+    for u in -SEARCH_RADIUS..SEARCH_RADIUS + 1 {
+        for v in -SEARCH_RADIUS..SEARCH_RADIUS + 1 {
             if u == 0 && v == 0 {
                 continue;
             }
 
             let x2 = ((x as i32 + u) % canvas.width as i32).abs() as u32;
             let y2 = ((y as i32 + v) % canvas.height as i32).abs() as u32;
-
-            let dist = ((u * u + v * v) as f32).sqrt() as f32;
-            let weight = (1.0 / dist).powf(2.0);
-
             let i2 = (y2 * canvas.width + x2) as usize;
             let last_value2 = map[i2];
 
             if last_value2 > rng.gen_range(0.4..0.6) {
-                cum += last_value2 * rng.gen_range(0.8..1.1) * weight;
+                let weight = weights[(v + SEARCH_RADIUS) as usize][(u + SEARCH_RADIUS) as usize];
+
+                c += last_value2 * rng.gen_range(0.9..1.1) * weight;
                 n += weight;
             }
         }
     }
 
-    val = (val + cum) / n;
+    val = (val + c) / n;
     val.clamp(0.0, 1.0)
 }
 
-fn ease_grow(x: f32) -> f32 {
-    let mut rng = rand::thread_rng();
-    let lim = rng.gen_range(0.2..0.3);
+fn median_filter(map: &Vec<f32>, canvas: &Canvas) -> Vec<f32> {
+    const MEDIAN_WINDOW: i32 = 1;
 
-    if x <= lim {
-        1.0
-    } else {
-        0.0
+    let mut filtered = vec![0.0; (canvas.width * canvas.height) as usize];
+    let mut window = Vec::<f32>::new();
+
+    for y in 0..canvas.height {
+        for x in 0..canvas.width {
+            let i = (y * canvas.width + x) as usize;
+
+            for u in -MEDIAN_WINDOW..MEDIAN_WINDOW + 1 {
+                for v in -MEDIAN_WINDOW..MEDIAN_WINDOW + 1 {
+                    let x2 = ((x as i32 + u) % canvas.width as i32).abs() as u32;
+                    let y2 = ((y as i32 + v) % canvas.height as i32).abs() as u32;
+                    let i2 = (y2 * canvas.width + x2) as usize;
+
+                    let value = map[i2];
+                    window.push(value);
+                }
+            }
+
+            window.sort_by(|a, b| a.partial_cmp(b).unwrap());
+
+            filtered[i] = window[window.len() / 2];
+
+            window.clear();
+        }
     }
+
+    filtered
 }
 
 impl Scene for WaveScene {
-    fn tick(&mut self, canvas: &mut Canvas, _tick: &FrameTick) {
+    fn tick(&mut self, canvas: &mut Canvas, tick: &FrameTick) {
         let mut rng = rand::thread_rng();
 
-        let last_map = self.map.clone();
-        let mut map = vec![0.0; 64 * 32];
+        std::mem::swap(&mut self.last_map, &mut self.map);
+        let last_map = &mut self.last_map;
+        let map = &mut self.map;
 
         for y in 0..canvas.height {
             for x in 0..canvas.width {
                 let i = (y * canvas.width + x) as usize;
                 let last_value = last_map[i];
 
-                map[i] = last_value * rng.gen_range(0.96..0.99);
+                map[i] = last_value * (1.0 - (rng.gen_range(0.2..0.4) * tick.dt));
 
-                let e = ease_grow(last_value);
-                map[i] = e * grow_step(x, y, &last_map, canvas) + (1.0 - e) * map[i];
+                if last_value <= rng.gen_range(0.1..0.35) {
+                    map[i] = grow_step(x, y, &last_map, canvas, &self.weights);
+                }
 
                 map[i] = map[i].clamp(0.0, 1.0);
             }
         }
 
-        self.map = map;
-        self.draw_map(canvas);
+        self.draw_map(canvas, tick.t);
     }
 }
