@@ -33,8 +33,8 @@ impl WaveScene {
     }
 
     fn draw_map(&self, canvas: &mut Canvas, t: f32) {
-        //let median_map = median_filter(&self.map, canvas);
-        let map = &self.map;
+        let map = median_filter(&self.map, canvas);
+        // let map = &self.map;
 
         for y in 0..canvas.height {
             for x in 0..canvas.width {

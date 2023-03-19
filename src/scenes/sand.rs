@@ -82,6 +82,20 @@ impl SandScene {
                 }
             }
         }
+
+        // let map = &self.map;
+
+        // for y in 0..canvas.height {
+        //     for x in 0..canvas.width {
+        //         let index = (y * canvas.width + x) as usize;
+        //         let value = map[index].powf(2.0);
+
+        //         let hsv = Oklch::new(value.powf(1.0), 0.1, (value + t * 0.1) * 360.0);
+        //         let rgb = Srgb::from_color(hsv);
+
+        //         canvas.set_pixel(x, y, rgb.red, rgb.green, rgb.blue);
+        //     }
+        // }
     }
 }
 
@@ -114,6 +128,10 @@ impl Scene for SandScene {
         });
 
         let mut to_update: Vec<(usize, usize)> = vec![];
+        let hehe2 = self.map[1].len();
+        let hehe = self.map[0].len();
+        eprint!("{hehe2}");
+        eprint!("{hehe}");
         for y in 0..self.map[0].len() {
             for x in 0..self.map[y].len() {
                 to_update.push((x, y));
