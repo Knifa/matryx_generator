@@ -3,7 +3,18 @@ mod scenes;
 use led_matrix_zmq::client::{MatrixClient, MatrixClientSettings};
 use std::time;
 
-use scenes::{WaveScene};
+use scenes::{ClockScene, WaveScene};
+
+use embedded_graphics::{
+    draw_target::DrawTarget,
+    geometry::{Dimensions, Point, Size},
+    mono_font::{ascii::FONT_4X6, MonoTextStyle},
+    pixelcolor::Rgb888,
+    prelude::*,
+    primitives::Rectangle,
+    text::Text,
+    Pixel,
+};
 
 const FRAME_TIME: time::Duration = time::Duration::from_millis((1000 / 30) as u64);
 
@@ -83,6 +94,7 @@ trait Scene {
     fn tick(&mut self, _canvas: &mut Canvas, _tick: &FrameTick) {}
 }
 
+#[derive(Clone)]
 pub struct Canvas {
     width: u32,
     height: u32,
@@ -127,20 +139,61 @@ impl Canvas {
     }
 }
 
+impl Dimensions for Canvas {
+    fn bounding_box(&self) -> Rectangle {
+        Rectangle::new(
+            Point::new(0, 0),
+            Size::new(self.width as u32, self.height as u32),
+        )
+    }
+}
+
+impl DrawTarget for Canvas {
+    type Color = Rgb888;
+    type Error = core::convert::Infallible;
+
+    fn draw_iter<I>(&mut self, pixels: I) -> Result<(), Self::Error>
+    where
+        I: IntoIterator<Item = Pixel<Self::Color>>,
+    {
+        for px in pixels {
+            self.set_pixel(
+                px.0.x as u32,
+                px.0.y as u32,
+                px.1.r() as f32,
+                px.1.g() as f32,
+                px.1.b() as f32,
+            );
+            // self.set(px.0.x, px.0.y, &px.1.into());
+        }
+        Ok(())
+    }
+
+    fn clear(&mut self, color: Self::Color) -> Result<(), Self::Error> {
+        self.clear();
+        // self.fill(&color.into());
+        Ok(())
+    }
+}
+
 fn main() {
     let client = MatrixClient::new(MatrixClientSettings {
         addr: "tcp://localhost:42024".to_string(),
     });
 
     let mut canvas = Canvas::new(64, 32);
+    let mut canvas2 = Canvas::new(64, 32);
     let mut frame_timer = FrameTimer::new();
     let mut scene = WaveScene::new(&canvas);
+    let mut scene2: ClockScene = ClockScene::new(&canvas2);
 
     loop {
         let tick = frame_timer.tick();
 
         scene.tick(&mut canvas, &tick);
-        client.send_frame(canvas.pixels());
+        canvas2 = canvas.clone();
+        scene2.tick(&mut canvas2, &tick);
+        client.send_frame(canvas2.pixels());
 
         frame_timer.wait_for_next_frame();
     }

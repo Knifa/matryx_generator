@@ -9,4 +9,5 @@ led_matrix_zmq = { git = "https://github.com/Knifa/led_matrix_zmq.git" }
 
 palette = "0.6.0"
 rand = "0.8.4"
-
+embedded-graphics = "0.7.1"
+chrono = "0.4.24"
