@@ -1,14 +1,11 @@
 use crate::{Canvas, FrameTick, Scene};
 use chrono::Local;
 use embedded_graphics::{
-    mono_font::{ascii::FONT_4X6, MonoTextStyle},
+    mono_font::{MonoTextStyle, ascii::FONT_9X18_BOLD},
     pixelcolor::Rgb888,
     prelude::*,
     text::Text,
-    draw_target::DrawTarget,
-    geometry::{Dimensions, Point, Size},
-    primitives::Rectangle,
-    Pixel,
+    geometry::{Point},
 };
 
 extern crate chrono;
@@ -46,13 +43,12 @@ impl Scene for ClockScene {
     fn tick(&mut self, canvas: &mut Canvas, tick: &FrameTick) {
         let t = tick.start.elapsed().as_secs_f32() * 0.5f32;
         let date = Local::now();
-        let times=date.format("%H:%M:%S").to_string();
-        // println!("{}", times);
-
-        let text_style = MonoTextStyle::new(&FONT_4X6, Rgb888::new(0xff, 0xff, 0xff));
-        // let eg_text = "EG+";
+        //TODO: format lines
+        let times=date.format("%H:%M").to_string();
+        let text_style = MonoTextStyle::new(&FONT_9X18_BOLD, Rgb888::new(0, 0,0));
         // canvas.clear();
-        Text::new(&times, Point::new(16, 16), text_style)
+        // Text::new(&times, Point::new(9, 18), text_style)
+        Text::new(&times, Point::new(10, 20), text_style)
             .draw( canvas)
             .unwrap();
     }
