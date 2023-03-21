@@ -12,10 +12,11 @@ pub struct WaveScene {
     map: Vec<f32>,
     last_map: Vec<f32>,
     weights: Kernel,
+    speed: f32,
 }
 
 impl WaveScene {
-    pub fn new(canvas: &Canvas) -> Self {
+    pub fn new(canvas: &Canvas, speed: f32) -> Self {
         let mut rng = rand::thread_rng();
 
         let mut map = vec![0.0_f32; (canvas.width * canvas.height) as usize];
@@ -29,6 +30,7 @@ impl WaveScene {
             last_map: map.clone(),
             map,
             weights,
+            speed,
         }
     }
 
@@ -144,7 +146,7 @@ impl Scene for WaveScene {
                 let i = (y * canvas.width + x) as usize;
                 let last_value = last_map[i];
 
-                map[i] = last_value * (1.0 - (rng.gen_range(0.2..0.4) * tick.dt));
+                map[i] = last_value * (1.0 - (rng.gen_range(0.2..0.4) * tick.dt * self.speed));
 
                 if last_value <= rng.gen_range(0.1..0.35) {
                     map[i] = grow_step(x, y, &last_map, canvas, &self.weights);
@@ -154,6 +156,6 @@ impl Scene for WaveScene {
             }
         }
 
-        self.draw_map(canvas, tick.t);
+        self.draw_map(canvas, tick.t * self.speed);
     }
 }

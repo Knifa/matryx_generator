@@ -232,7 +232,7 @@ fn filter_bright_foreground(canvas: &mut Canvas, canvas2: &mut Canvas) {
                 canvas.set_pixel(x, y, my_rgb.red, my_rgb.green, my_rgb.blue);
             } else {
                 // darken
-                let my_rgb = color_lightness(curr_pixel, 0.001);
+                let my_rgb = color_lightness(curr_pixel, 0.01);
                 canvas.set_pixel(x, y, my_rgb.red, my_rgb.green, my_rgb.blue);
             }
         }
@@ -248,7 +248,7 @@ fn main() {
     let mut canvas2 = Canvas::new(64, 32);
     let mut canvas3 = Canvas::new(64, 32);
     let mut frame_timer = FrameTimer::new();
-    let mut scene = WaveScene::new(&canvas3);
+    let mut scene = WaveScene::new(&canvas3, 0.1);
     let mut clock_scene: ClockScene = ClockScene::new(&canvas2);
     let mut plasma_scene: PlasmaScene = PlasmaScene {};
 
