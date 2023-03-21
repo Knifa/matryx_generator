@@ -1,6 +1,7 @@
 mod scenes;
 
 use led_matrix_zmq::client::{MatrixClient, MatrixClientSettings};
+use palette::{rgb::Rgb, FromColor, Hsl, IntoColor, Lch, Srgb};
 use std::time;
 
 use scenes::{ClockScene, PlasmaScene, WaveScene};
@@ -211,6 +212,30 @@ fn filter_foreground(canvas: &mut Canvas, canvas2: &mut Canvas) {
     }
 }
 
+fn color_lightness(curr_pixel: [f32; 3], lightness: f32) -> Rgb {
+    let my_rgb = Srgb::new(curr_pixel[0], curr_pixel[1], curr_pixel[2]);
+    let my_lch = Lch::from_color(my_rgb);
+    let mut my_hsl: Hsl = my_lch.into_color();
+    my_hsl.lightness *= lightness;
+    return Srgb::from_color(my_hsl);
+}
+
+fn filter_bright_foreground(canvas: &mut Canvas, canvas2: &mut Canvas) {
+    for y in 0..canvas.height {
+        for x in 0..canvas.width {
+            let curr_pixel2 = canvas.get_pixel(x, y);
+            let curr_pixel = canvas2.get_pixel(x, y);
+            if curr_pixel2[0] != 0.0 && curr_pixel2[1] != 0.0 && curr_pixel2[2] != 0.0 {
+                canvas.set_pixel(x, y, curr_pixel[2], curr_pixel[1], curr_pixel[0]);
+            } else {
+                // darken
+                let my_rgb = color_lightness(curr_pixel, 0.1);
+                canvas.set_pixel(x, y, my_rgb.red, my_rgb.green, my_rgb.blue);
+            }
+        }
+    }
+}
+
 fn main() {
     let client = MatrixClient::new(MatrixClientSettings {
         addr: "tcp://localhost:42024".to_string(),
@@ -230,9 +255,9 @@ fn main() {
         scene.tick(&mut canvas3, &tick);
         plasma_scene.tick(&mut canvas, &tick);
         clock_scene.tick(&mut canvas2, &tick);
-        filter_background(&mut canvas, &mut canvas2);
-        filter_foreground(&mut canvas, &mut canvas3);
-        client.send_frame(canvas.pixels());
+        // filter_background(&mut canvas, &mut canvas2);
+        filter_bright_foreground(&mut canvas2, &mut canvas3);
+        client.send_frame(canvas2.pixels());
 
         frame_timer.wait_for_next_frame();
     }
