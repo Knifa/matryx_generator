@@ -3,7 +3,7 @@ mod scenes;
 use led_matrix_zmq::client::{MatrixClient, MatrixClientSettings};
 use std::time;
 
-use scenes::{ClockScene, WaveScene, PlasmaScene};
+use scenes::{ClockScene, PlasmaScene, WaveScene};
 
 use embedded_graphics::{
     draw_target::DrawTarget,
@@ -176,7 +176,8 @@ impl DrawTarget for Canvas {
     }
 
     fn clear(&mut self, color: Self::Color) -> Result<(), Self::Error> {
-        self.clear();
+        // self.clear();
+        self.clear_with_color(color.r() as f32, color.g() as f32, color.b() as f32);
         // self.fill(&color.into());
         Ok(())
     }
@@ -185,12 +186,12 @@ impl DrawTarget for Canvas {
 fn filter_background(canvas: &mut Canvas, canvas2: &mut Canvas) {
     for y in 0..canvas.height {
         for x in 0..canvas.width {
-            let currPixel = canvas2.get_pixel(x, y);
-            if (currPixel[0] != 0.0 && currPixel[1] != 0.0 && currPixel[2] != 0.0) {
-                let currPixel2 = canvas.get_pixel(x, y);
-                canvas.set_pixel(x, y, currPixel2[0], currPixel2[1], currPixel2[2]);
+            let curr_pixel = canvas2.get_pixel(x, y);
+            if curr_pixel[0] != 0.0 && curr_pixel[1] != 0.0 && curr_pixel[2] != 0.0 {
+                let curr_pixel2 = canvas.get_pixel(x, y);
+                canvas.set_pixel(x, y, curr_pixel2[0], curr_pixel2[1], curr_pixel2[2]);
             } else {
-                canvas.set_pixel(x, y, currPixel[0], currPixel[1], currPixel[2]);
+                canvas.set_pixel(x, y, curr_pixel[0], curr_pixel[1], curr_pixel[2]);
             }
         }
     }
@@ -199,12 +200,12 @@ fn filter_background(canvas: &mut Canvas, canvas2: &mut Canvas) {
 fn filter_foreground(canvas: &mut Canvas, canvas2: &mut Canvas) {
     for y in 0..canvas.height {
         for x in 0..canvas.width {
-            let currPixel = canvas2.get_pixel(x, y);
-            let currPixel2 = canvas.get_pixel(x, y);
-            if (currPixel2[0] != 0.0 && currPixel2[1] != 0.0 && currPixel2[2] != 0.0) {
-                canvas.set_pixel(x, y, currPixel2[0], currPixel2[1], currPixel2[2]);
+            let curr_pixel2 = canvas.get_pixel(x, y);
+            if curr_pixel2[0] != 0.0 && curr_pixel2[1] != 0.0 && curr_pixel2[2] != 0.0 {
+                canvas.set_pixel(x, y, curr_pixel2[0], curr_pixel2[1], curr_pixel2[2]);
             } else {
-                canvas.set_pixel(x, y, currPixel[0], currPixel[1], currPixel[2]);
+                let curr_pixel = canvas2.get_pixel(x, y);
+                canvas.set_pixel(x, y, curr_pixel[0], curr_pixel[1], curr_pixel[2]);
             }
         }
     }
@@ -221,7 +222,7 @@ fn main() {
     let mut frame_timer = FrameTimer::new();
     let mut scene = WaveScene::new(&canvas3);
     let mut clock_scene: ClockScene = ClockScene::new(&canvas2);
-    let mut plasma_scene: PlasmaScene = PlasmaScene{};
+    let mut plasma_scene: PlasmaScene = PlasmaScene {};
 
     loop {
         let tick = frame_timer.tick();

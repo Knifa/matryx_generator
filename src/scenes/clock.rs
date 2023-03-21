@@ -2,39 +2,35 @@ use crate::{Canvas, FrameTick, Scene};
 use chrono::Local;
 use embedded_graphics::{
     geometry::Point,
-    mono_font::{ascii::FONT_10X20, MonoTextStyle},
-    pixelcolor::{Rgb888, BinaryColor},
+    pixelcolor::{Rgb888},
     prelude::*,
     text::Text,
 };
 use u8g2_fonts::{fonts, U8g2TextStyle};
 
-use ibm437::{IBM437_8X8_BOLD, IBM437_9X14_REGULAR};
-use profont::{PROFONT_14_POINT, PROFONT_18_POINT, PROFONT_24_POINT};
-use u8g2_fonts::{FontRenderer, types::{HorizontalAlignment, VerticalPosition, FontColor}};
-
 extern crate chrono;
 
 pub struct ClockScene {
-    format_lines: Vec<String>,
+    // format_lines: Vec<String>,
 }
 
 impl ClockScene {
     pub fn new(canvas: &Canvas) -> Self {
-        let mut format_lines = vec!["%H:%M".to_string()];
+        // let mut format_lines = vec!["%H:%M".to_string()];
 
-        ClockScene { format_lines }
+        // ClockScene { format_lines }
+        ClockScene {  }
     }
 }
 
 impl Scene for ClockScene {
     fn tick(&mut self, canvas: &mut Canvas, tick: &FrameTick) {
-        let t = tick.start.elapsed().as_secs_f32() * 0.5f32;
+        // let t = tick.start.elapsed().as_secs_f32() * 0.5f32;
         let date = Local::now();
         //TODO: format lines
         canvas.clear();
-        let font = FontRenderer::new::<fonts::u8g2_font_haxrcorp4089_t_cyrillic>();
-        let text = "embedded-graphics";
+        // let font = FontRenderer::new::<fonts::u8g2_font_haxrcorp4089_t_cyrillic>();
+        // let text = "embedded-graphics";
         // font.render_aligned(
         //     text,
         //     canvas.bounding_box().center() + Point::new(0, 16),
