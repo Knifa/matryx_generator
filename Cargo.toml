@@ -12,5 +12,3 @@ rand = "0.8.4"
 embedded-graphics = "0.7.1"
 chrono = "0.4.24"
 u8g2-fonts = { version = "0.2.0", features = ["embedded_graphics_textstyle"] }
-profont = "0.6.1"
-ibm437 = "0.3.2"

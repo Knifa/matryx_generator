@@ -15,7 +15,7 @@ pub struct ClockScene {
 }
 
 impl ClockScene {
-    pub fn new(canvas: &Canvas) -> Self {
+    pub fn new(_canvas: &Canvas) -> Self {
         // let mut format_lines = vec!["%H:%M".to_string()];
 
         // ClockScene { format_lines }
@@ -24,7 +24,7 @@ impl ClockScene {
 }
 
 impl Scene for ClockScene {
-    fn tick(&mut self, canvas: &mut Canvas, tick: &FrameTick) {
+    fn tick(&mut self, canvas: &mut Canvas, _tick: &FrameTick) {
         // let t = tick.start.elapsed().as_secs_f32() * 0.5f32;
         let date = Local::now();
         //TODO: format lines
