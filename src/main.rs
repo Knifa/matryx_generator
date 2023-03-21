@@ -232,7 +232,7 @@ fn filter_bright_foreground(canvas: &mut Canvas, canvas2: &mut Canvas) {
                 canvas.set_pixel(x, y, my_rgb.red, my_rgb.green, my_rgb.blue);
             } else {
                 // darken
-                let my_rgb = color_lightness(curr_pixel, 0.05);
+                let my_rgb = color_lightness(curr_pixel, 0.001);
                 canvas.set_pixel(x, y, my_rgb.red, my_rgb.green, my_rgb.blue);
             }
         }
