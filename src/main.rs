@@ -250,7 +250,7 @@ fn main() {
     let mut frame_timer = FrameTimer::new();
     let mut scene = WaveScene::new(&canvas3, 1.0);
     let mut clock_scene: ClockScene = ClockScene::new(&canvas2);
-    let mut plasma_scene: PlasmaScene = PlasmaScene {};
+    let mut plasma_scene: PlasmaScene = PlasmaScene::new(0.1);
 
     loop {
         let tick = frame_timer.tick();

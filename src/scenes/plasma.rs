@@ -1,10 +1,18 @@
 use crate::{Canvas, FrameTick, Scene};
 
-pub struct PlasmaScene {}
+pub struct PlasmaScene {
+    speed: f32,
+}
+
+impl PlasmaScene {
+    pub fn new(speed: f32) -> Self {
+        PlasmaScene { speed }
+    }
+}
 
 impl Scene for PlasmaScene {
     fn tick(&mut self, canvas: &mut Canvas, tick: &FrameTick) {
-        let t = tick.start.elapsed().as_secs_f32() * 0.5f32;
+        let t = tick.start.elapsed().as_secs_f32() * 0.5f32 * self.speed;
 
         for y in 0..canvas.height {
             for x in 0..canvas.width {
