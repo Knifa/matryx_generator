@@ -226,10 +226,10 @@ fn filter_bright_foreground(canvas: &mut Canvas, canvas2: &mut Canvas, lightness
             let curr_pixel2 = canvas.get_pixel(x, y);
             let curr_pixel = canvas2.get_pixel(x, y);
             if curr_pixel2[0] != 0.0 && curr_pixel2[1] != 0.0 && curr_pixel2[2] != 0.0 {
-                // canvas.set_pixel(x, y, curr_pixel[0], curr_pixel[1], curr_pixel[2]);
+                canvas.set_pixel(x, y, curr_pixel[0], curr_pixel[1], curr_pixel[2]);
                 // lighten?
-                let my_rgb = color_lightness(curr_pixel, 1.0);
-                canvas.set_pixel(x, y, my_rgb.red, my_rgb.green, my_rgb.blue);
+                // let my_rgb = color_lightness(curr_pixel, 1.0);
+                // canvas.set_pixel(x, y, my_rgb.red, /my_rgb.green, my_rgb.blue);
             } else {
                 // darken
                 let my_rgb = color_lightness(curr_pixel, lightness);
@@ -259,7 +259,7 @@ fn main() {
         plasma_scene.tick(&mut canvas, &tick);
         clock_scene.tick(&mut canvas2, &tick);
         // filter_background(&mut canvas3, &mut canvas2);
-        filter_bright_foreground(&mut canvas2, &mut canvas3, 0.02);
+        filter_bright_foreground(&mut canvas2, &mut canvas3, 0.01);
         client.send_frame(canvas2.pixels());
 
         frame_timer.wait_for_next_frame();
