@@ -248,7 +248,7 @@ fn main() {
     let mut canvas2 = Canvas::new(64, 32);
     let mut canvas3 = Canvas::new(64, 32);
     let mut frame_timer = FrameTimer::new();
-    let mut scene = WaveScene::new(&canvas3, 0.1);
+    let mut scene = WaveScene::new(&canvas3, 1.0);
     let mut clock_scene: ClockScene = ClockScene::new(&canvas2);
     let mut plasma_scene: PlasmaScene = PlasmaScene {};
 
@@ -259,8 +259,8 @@ fn main() {
         plasma_scene.tick(&mut canvas, &tick);
         clock_scene.tick(&mut canvas2, &tick);
         // filter_background(&mut canvas, &mut canvas2);
-        filter_bright_foreground(&mut canvas2, &mut canvas3);
-        client.send_frame(canvas2.pixels());
+        filter_bright_foreground(&mut canvas, &mut canvas3);
+        client.send_frame(canvas.pixels());
 
         frame_timer.wait_for_next_frame();
     }
