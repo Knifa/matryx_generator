@@ -50,7 +50,7 @@ impl Scene for ClockScene {
         U8g2TextStyle::new(fonts::u8g2_font_helvB14_tn, Rgb888::new(255, 255, 255));
 
         // Text::new(&times, Point::new(9, 18), text_style)
-        Text::new(&times, Point::new(8, 22), character_style)
+        Text::new(&times, Point::new(9, 22), character_style)
             .draw(canvas)
             .unwrap();
     }
