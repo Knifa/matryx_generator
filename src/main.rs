@@ -220,7 +220,7 @@ fn color_lightness(curr_pixel: [f32; 3], lightness: f32) -> Rgb {
     return Srgb::from_color(my_hsl);
 }
 
-fn filter_bright_foreground(canvas: &mut Canvas, canvas2: &mut Canvas) {
+fn filter_bright_foreground(canvas: &mut Canvas, canvas2: &mut Canvas, lightness: f32) {
     for y in 0..canvas.height {
         for x in 0..canvas.width {
             let curr_pixel2 = canvas.get_pixel(x, y);
@@ -232,7 +232,7 @@ fn filter_bright_foreground(canvas: &mut Canvas, canvas2: &mut Canvas) {
                 canvas.set_pixel(x, y, my_rgb.red, my_rgb.green, my_rgb.blue);
             } else {
                 // darken
-                let my_rgb = color_lightness(curr_pixel, 0.01);
+                let my_rgb = color_lightness(curr_pixel, lightness);
                 canvas.set_pixel(x, y, my_rgb.red, my_rgb.green, my_rgb.blue);
             }
         }
@@ -258,8 +258,8 @@ fn main() {
         scene.tick(&mut canvas3, &tick);
         plasma_scene.tick(&mut canvas, &tick);
         clock_scene.tick(&mut canvas2, &tick);
-        // filter_background(&mut canvas, &mut canvas2);
-        filter_bright_foreground(&mut canvas2, &mut canvas);
+        // filter_background(&mut canvas3, &mut canvas2);
+        filter_bright_foreground(&mut canvas2, &mut canvas3, 0.05);
         client.send_frame(canvas2.pixels());
 
         frame_timer.wait_for_next_frame();
