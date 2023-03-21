@@ -3,16 +3,14 @@ mod scenes;
 use led_matrix_zmq::client::{MatrixClient, MatrixClientSettings};
 use std::time;
 
-use scenes::{ClockScene, WaveScene};
+use scenes::{ClockScene, WaveScene, PlasmaScene};
 
 use embedded_graphics::{
     draw_target::DrawTarget,
     geometry::{Dimensions, Point, Size},
-    mono_font::{ascii::FONT_4X6, MonoTextStyle},
     pixelcolor::Rgb888,
     prelude::*,
     primitives::Rectangle,
-    text::Text,
     Pixel,
 };
 
@@ -134,6 +132,14 @@ impl Canvas {
         self.pixels[index + 2] = (b * 255.0) as u8;
     }
 
+    fn get_pixel(&mut self, x: u32, y: u32) -> [f32; 3] {
+        let index = ((y * self.width + x) * 3) as usize;
+        let r = self.pixels[index] as f32 / 255.0;
+        let g = self.pixels[index + 1] as f32 / 255.0;
+        let b = self.pixels[index + 2] as f32 / 255.0;
+        return [r as f32, g as f32, b as f32];
+    }
+
     fn pixels(&self) -> &[u8] {
         &self.pixels
     }
@@ -176,6 +182,34 @@ impl DrawTarget for Canvas {
     }
 }
 
+fn filter_background(canvas: &mut Canvas, canvas2: &mut Canvas) {
+    for y in 0..canvas.height {
+        for x in 0..canvas.width {
+            let currPixel = canvas2.get_pixel(x, y);
+            if (currPixel[0] != 0.0 && currPixel[1] != 0.0 && currPixel[2] != 0.0) {
+                let currPixel2 = canvas.get_pixel(x, y);
+                canvas.set_pixel(x, y, currPixel2[0], currPixel2[1], currPixel2[2]);
+            } else {
+                canvas.set_pixel(x, y, currPixel[0], currPixel[1], currPixel[2]);
+            }
+        }
+    }
+}
+
+fn filter_foreground(canvas: &mut Canvas, canvas2: &mut Canvas) {
+    for y in 0..canvas.height {
+        for x in 0..canvas.width {
+            let currPixel = canvas2.get_pixel(x, y);
+            let currPixel2 = canvas.get_pixel(x, y);
+            if (currPixel2[0] != 0.0 && currPixel2[1] != 0.0 && currPixel2[2] != 0.0) {
+                canvas.set_pixel(x, y, currPixel2[0], currPixel2[1], currPixel2[2]);
+            } else {
+                canvas.set_pixel(x, y, currPixel[0], currPixel[1], currPixel[2]);
+            }
+        }
+    }
+}
+
 fn main() {
     let client = MatrixClient::new(MatrixClientSettings {
         addr: "tcp://localhost:42024".to_string(),
@@ -183,16 +217,20 @@ fn main() {
 
     let mut canvas = Canvas::new(64, 32);
     let mut canvas2 = Canvas::new(64, 32);
+    let mut canvas3 = Canvas::new(64, 32);
     let mut frame_timer = FrameTimer::new();
-    let mut scene = WaveScene::new(&canvas);
-    let mut scene2: ClockScene = ClockScene::new(&canvas2);
+    let mut scene = WaveScene::new(&canvas3);
+    let mut clock_scene: ClockScene = ClockScene::new(&canvas2);
+    let mut plasma_scene: PlasmaScene = PlasmaScene{};
 
     loop {
         let tick = frame_timer.tick();
 
-        scene.tick(&mut canvas, &tick);
-        canvas2 = canvas.clone();
-        scene2.tick(&mut canvas2, &tick);
+        scene.tick(&mut canvas3, &tick);
+        plasma_scene.tick(&mut canvas, &tick);
+        clock_scene.tick(&mut canvas2, &tick);
+        // filter_background(&mut canvas, &mut canvas2);
+        filter_foreground(&mut canvas2, &mut canvas3);
         client.send_frame(canvas2.pixels());
 
         frame_timer.wait_for_next_frame();
