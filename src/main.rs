@@ -226,7 +226,7 @@ fn filter_bright_foreground(canvas: &mut Canvas, canvas2: &mut Canvas) {
             let curr_pixel2 = canvas.get_pixel(x, y);
             let curr_pixel = canvas2.get_pixel(x, y);
             if curr_pixel2[0] != 0.0 && curr_pixel2[1] != 0.0 && curr_pixel2[2] != 0.0 {
-                canvas.set_pixel(x, y, curr_pixel[2], curr_pixel[1], curr_pixel[0]);
+                canvas.set_pixel(x, y, curr_pixel[0], curr_pixel[1], curr_pixel[2]);
             } else {
                 // darken
                 let my_rgb = color_lightness(curr_pixel, 0.1);
