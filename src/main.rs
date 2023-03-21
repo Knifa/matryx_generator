@@ -229,9 +229,9 @@ fn main() {
         scene.tick(&mut canvas3, &tick);
         plasma_scene.tick(&mut canvas, &tick);
         clock_scene.tick(&mut canvas2, &tick);
-        // filter_background(&mut canvas, &mut canvas2);
-        filter_foreground(&mut canvas2, &mut canvas3);
-        client.send_frame(canvas2.pixels());
+        filter_background(&mut canvas, &mut canvas2);
+        filter_foreground(&mut canvas, &mut canvas3);
+        client.send_frame(canvas.pixels());
 
         frame_timer.wait_for_next_frame();
     }
