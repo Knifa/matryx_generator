@@ -6,16 +6,15 @@ use led_matrix_zmq::client::{MatrixClient, MatrixClientSettings};
 use nokhwa::{
     pixel_format::{LumaFormat, RgbFormat},
     utils::{CameraIndex, RequestedFormat, RequestedFormatType},
-    CallbackCamera, Camera,
+    CallbackCamera,
 };
 
 use palette::{rgb::Rgb, FromColor, Hsl, IntoColor, Lch, Srgb};
 use std::{
     sync::{
-        atomic::{AtomicBool, AtomicU8, Ordering},
+        atomic::{AtomicU8, Ordering},
         Arc,
     },
-    thread,
     time::{self},
 };
 
@@ -280,6 +279,7 @@ fn main() {
     let hists_clone = hists.clone();
 
     // let handle = thread::spawn(move || {
+        eprint!("cAmera time");
         let index = CameraIndex::Index(0);
         // request the absolute highest resolution CameraFormat that can be decoded to RGB.
         let requested =
@@ -297,6 +297,9 @@ fn main() {
         })
         .unwrap();
         let cam = camera.open_stream();
+        if cam.err().is_some(){
+            hists_clone.store(100, Ordering::Relaxed);
+        }
     // });
     loop {
         let tick = frame_timer.tick();
