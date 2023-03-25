@@ -286,14 +286,8 @@ fn main() {
         RequestedFormat::new::<RgbFormat>(RequestedFormatType::AbsoluteHighestFrameRate);
     // make the camera
     let mut camera = CallbackCamera::new(index, requested, move |buf| {
-        // sender_clone.send(buf).expect("Error sending frame!!!!");
-        load_from_memory(buf.buffer())
-            .unwrap()
-            .save("wjww.PNG")
-            .unwrap();
         let val = percentile(&buf.decode_image::<LumaFormat>().unwrap(), 90);
         hists.store(val, Ordering::Relaxed);
-        eprintln!("{}", val);
     })
     .unwrap();
     let cam = camera.open_stream();
