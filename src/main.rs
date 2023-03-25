@@ -279,40 +279,42 @@ fn main() {
     let hists_clone = hists.clone();
 
     // let handle = thread::spawn(move || {
-        eprint!("cAmera time");
-        let index = CameraIndex::Index(0);
-        // request the absolute highest resolution CameraFormat that can be decoded to RGB.
-        let requested =
-            RequestedFormat::new::<RgbFormat>(RequestedFormatType::AbsoluteHighestFrameRate);
-        // make the camera
-        let mut camera = CallbackCamera::new(index, requested, move |buf| {
-            // sender_clone.send(buf).expect("Error sending frame!!!!");
-            load_from_memory(buf.buffer())
-                .unwrap()
-                .save("wjww.PNG")
-                .unwrap();
-            let val = percentile(&buf.decode_image::<LumaFormat>().unwrap(), 90);
-            hists.store(val, Ordering::Relaxed);
-            eprintln!("{}", val);
-        })
-        .unwrap();
-        let cam = camera.open_stream();
-        if cam.err().is_some(){
-            hists_clone.store(100, Ordering::Relaxed);
-        }
+    eprint!("cAmera time");
+    let index = CameraIndex::Index(0);
+    // request the absolute highest resolution CameraFormat that can be decoded to RGB.
+    let requested =
+        RequestedFormat::new::<RgbFormat>(RequestedFormatType::AbsoluteHighestFrameRate);
+    // make the camera
+    let mut camera = CallbackCamera::new(index, requested, move |buf| {
+        // sender_clone.send(buf).expect("Error sending frame!!!!");
+        load_from_memory(buf.buffer())
+            .unwrap()
+            .save("wjww.PNG")
+            .unwrap();
+        let val = percentile(&buf.decode_image::<LumaFormat>().unwrap(), 90);
+        hists.store(val, Ordering::Relaxed);
+        eprintln!("{}", val);
+    })
+    .unwrap();
+    let cam = camera.open_stream();
+    if cam.err().is_some() {
+        hists_clone.store(100, Ordering::Relaxed);
+    }
     // });
     loop {
         let tick = frame_timer.tick();
-
-        scene.tick(&mut canvas3, &tick);
-        plasma_scene.tick(&mut canvas, &tick);
         clock_scene.tick(&mut canvas2, &tick);
-        // filter_background(&mut canvas3, &mut canvas2);
-        filter_bright_foreground(&mut canvas2, &mut canvas3, 0.01);
         if hists_clone.load(Ordering::Relaxed) <= 10 {
             filter_darken(&mut canvas2, 0.05);
+            client.send_frame(canvas2.pixels());
+        } else {
+            scene.tick(&mut canvas3, &tick);
+            plasma_scene.tick(&mut canvas, &tick);
+            let mut canvas4 = canvas2.clone();
+            // filter_background(&mut canvas3, &mut canvas2);
+            filter_bright_foreground(&mut canvas4, &mut canvas3, 0.01);
+            client.send_frame(canvas4.pixels());
         }
-        client.send_frame(canvas2.pixels());
         frame_timer.wait_for_next_frame();
     }
 }
