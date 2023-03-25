@@ -304,8 +304,8 @@ fn main() {
     loop {
         let tick = frame_timer.tick();
         clock_scene.tick(&mut canvas2, &tick);
-        if hists_clone.load(Ordering::Relaxed) <= 10 {
-            filter_darken(&mut canvas2, 0.05);
+        if hists_clone.load(Ordering::Relaxed) <= 14 {
+            filter_darken(&mut canvas2, 0.00262);
             client.send_frame(canvas2.pixels());
         } else {
             scene.tick(&mut canvas3, &tick);
