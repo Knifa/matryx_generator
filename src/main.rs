@@ -1,8 +1,24 @@
 mod scenes;
 
+use image::{load_from_memory};
+use imageproc::{
+    stats::percentile,
+};
 use led_matrix_zmq::client::{MatrixClient, MatrixClientSettings};
+use nokhwa::{
+    pixel_format::{LumaFormat, RgbFormat},
+    utils::{CameraIndex, RequestedFormat, RequestedFormatType},
+    Camera,
+};
 use palette::{rgb::Rgb, FromColor, Hsl, IntoColor, Lch, Srgb};
-use std::time;
+use std::{
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
+    thread,
+    time::{self},
+};
 
 use scenes::{ClockScene, PlasmaScene, WaveScene};
 
@@ -239,6 +255,16 @@ fn filter_bright_foreground(canvas: &mut Canvas, canvas2: &mut Canvas, lightness
     }
 }
 
+fn filter_darken(canvas: &mut Canvas, lightness: f32) {
+    for y in 0..canvas.height {
+        for x in 0..canvas.width {
+            let curr_pixel = canvas.get_pixel(x, y);
+            let my_rgb = color_lightness(curr_pixel, lightness);
+            canvas.set_pixel(x, y, my_rgb.red, my_rgb.green, my_rgb.blue);
+        }
+    }
+}
+
 fn main() {
     let client = MatrixClient::new(MatrixClientSettings {
         addr: "tcp://localhost:42024".to_string(),
@@ -251,7 +277,39 @@ fn main() {
     let mut scene = WaveScene::new(&canvas3, 1.0);
     let mut clock_scene: ClockScene = ClockScene::new(&canvas2);
     let mut plasma_scene: PlasmaScene = PlasmaScene::new(0.1);
+    let dark_out = Arc::new(AtomicBool::new(false));
+    let dark_out_clone = dark_out.clone();
 
+    let handle = thread::spawn(move || {
+        let index = CameraIndex::Index(1);
+        // request the absolute highest resolution CameraFormat that can be decoded to RGB.
+        let requested =
+            RequestedFormat::new::<RgbFormat>(RequestedFormatType::AbsoluteHighestFrameRate);
+        // make the camera
+        let mut camera = Camera::new(index, requested).unwrap();
+        let res_cam = camera.open_stream();
+        // decoded.save("th.PNG").unwrap();
+        // img.save("wjw.PNG").unwrap();
+        // let hists = percentile(&decoded, 10);
+        // eprintln!("{}", hists);
+
+        loop {
+            let frame = camera.frame().unwrap();
+            let decoded = frame.decode_image::<LumaFormat>().unwrap();
+            let hists = percentile(&decoded, 90);
+            load_from_memory(frame.buffer())
+                .unwrap()
+                .save("wjww.PNG")
+                .unwrap();
+            eprintln!("{}", hists);
+            // thread::sleep(Duration::from_secs(5));
+            if hists > 10 {
+                dark_out.store(false, Ordering::Relaxed);
+            } else {
+                dark_out.store(true, Ordering::Relaxed);
+            }
+        }
+    });
     loop {
         let tick = frame_timer.tick();
 
@@ -260,7 +318,12 @@ fn main() {
         clock_scene.tick(&mut canvas2, &tick);
         // filter_background(&mut canvas3, &mut canvas2);
         filter_bright_foreground(&mut canvas2, &mut canvas3, 0.01);
-        client.send_frame(canvas2.pixels());
+        if dark_out_clone.load(Ordering::Relaxed) {
+            filter_darken(&mut canvas2, 0.1);
+            client.send_frame(canvas2.pixels());
+        } else {
+            client.send_frame(canvas2.pixels());
+        }
 
         frame_timer.wait_for_next_frame();
     }
