@@ -1,19 +1,18 @@
 mod scenes;
 
-use image::{load_from_memory};
-use imageproc::{
-    stats::percentile,
-};
+use image::load_from_memory;
+use imageproc::stats::percentile;
 use led_matrix_zmq::client::{MatrixClient, MatrixClientSettings};
 use nokhwa::{
     pixel_format::{LumaFormat, RgbFormat},
     utils::{CameraIndex, RequestedFormat, RequestedFormatType},
-    Camera,
+    CallbackCamera, Camera,
 };
+
 use palette::{rgb::Rgb, FromColor, Hsl, IntoColor, Lch, Srgb};
 use std::{
     sync::{
-        atomic::{AtomicBool, Ordering},
+        atomic::{AtomicBool, AtomicU8, Ordering},
         Arc,
     },
     thread,
@@ -277,39 +276,28 @@ fn main() {
     let mut scene = WaveScene::new(&canvas3, 1.0);
     let mut clock_scene: ClockScene = ClockScene::new(&canvas2);
     let mut plasma_scene: PlasmaScene = PlasmaScene::new(0.1);
-    let dark_out = Arc::new(AtomicBool::new(false));
-    let dark_out_clone = dark_out.clone();
+    let hists = Arc::new(AtomicU8::new(100));
+    let hists_clone = hists.clone();
 
-    let handle = thread::spawn(move || {
-        let index = CameraIndex::Index(1);
+    // let handle = thread::spawn(move || {
+        let index = CameraIndex::Index(0);
         // request the absolute highest resolution CameraFormat that can be decoded to RGB.
         let requested =
             RequestedFormat::new::<RgbFormat>(RequestedFormatType::AbsoluteHighestFrameRate);
         // make the camera
-        let mut camera = Camera::new(index, requested).unwrap();
-        let res_cam = camera.open_stream();
-        // decoded.save("th.PNG").unwrap();
-        // img.save("wjw.PNG").unwrap();
-        // let hists = percentile(&decoded, 10);
-        // eprintln!("{}", hists);
-
-        loop {
-            let frame = camera.frame().unwrap();
-            let decoded = frame.decode_image::<LumaFormat>().unwrap();
-            let hists = percentile(&decoded, 90);
-            load_from_memory(frame.buffer())
+        let mut camera = CallbackCamera::new(index, requested, move |buf| {
+            // sender_clone.send(buf).expect("Error sending frame!!!!");
+            load_from_memory(buf.buffer())
                 .unwrap()
                 .save("wjww.PNG")
                 .unwrap();
-            eprintln!("{}", hists);
-            // thread::sleep(Duration::from_secs(5));
-            if hists > 10 {
-                dark_out.store(false, Ordering::Relaxed);
-            } else {
-                dark_out.store(true, Ordering::Relaxed);
-            }
-        }
-    });
+            let val = percentile(&buf.decode_image::<LumaFormat>().unwrap(), 90);
+            hists.store(val, Ordering::Relaxed);
+            eprintln!("{}", val);
+        })
+        .unwrap();
+        let cam = camera.open_stream();
+    // });
     loop {
         let tick = frame_timer.tick();
 
@@ -318,13 +306,10 @@ fn main() {
         clock_scene.tick(&mut canvas2, &tick);
         // filter_background(&mut canvas3, &mut canvas2);
         filter_bright_foreground(&mut canvas2, &mut canvas3, 0.01);
-        if dark_out_clone.load(Ordering::Relaxed) {
+        if hists_clone.load(Ordering::Relaxed) <= 10 {
             filter_darken(&mut canvas2, 0.1);
-            client.send_frame(canvas2.pixels());
-        } else {
-            client.send_frame(canvas2.pixels());
         }
-
+        client.send_frame(canvas2.pixels());
         frame_timer.wait_for_next_frame();
     }
 }
