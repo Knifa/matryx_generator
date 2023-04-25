@@ -5,7 +5,8 @@ use imageproc::stats::percentile;
 use led_matrix_zmq::client::{MatrixClient, MatrixClientSettings};
 use nokhwa::{
     pixel_format::{LumaFormat, RgbFormat},
-    utils::{CameraIndex, RequestedFormat, RequestedFormatType},
+    query,
+    utils::{ApiBackend, CameraIndex, RequestedFormat, RequestedFormatType},
     CallbackCamera,
 };
 
@@ -15,6 +16,7 @@ use std::{
         atomic::{AtomicU8, Ordering},
         Arc,
     },
+    thread,
     time::{self},
 };
 
@@ -263,6 +265,21 @@ fn filter_darken(canvas: &mut Canvas, lightness: f32) {
     }
 }
 
+fn camera_start(hists: Arc<AtomicU8>) {
+    eprint!("cAmera time");
+    let index = CameraIndex::Index(0);
+    // request the absolute highest resolution CameraFormat that can be decoded to RGB.
+    let requested: RequestedFormat =
+        RequestedFormat::new::<RgbFormat>(RequestedFormatType::AbsoluteHighestFrameRate);
+    // make the camera
+    let mut camera = CallbackCamera::new(index, requested, move |buf| {
+        let val = percentile(&buf.decode_image::<LumaFormat>().unwrap(), 90);
+        hists.store(val, Ordering::Relaxed);
+    })
+    .unwrap();
+    let _cam = camera.open_stream();
+}
+
 fn main() {
     let client = MatrixClient::new(MatrixClientSettings {
         addr: "tcp://localhost:42024".to_string(),
@@ -278,27 +295,56 @@ fn main() {
     let hists = Arc::new(AtomicU8::new(100));
     let hists_clone = hists.clone();
 
-    // let handle = thread::spawn(move || {
-    eprint!("cAmera time");
-    let index = CameraIndex::Index(0);
-    // request the absolute highest resolution CameraFormat that can be decoded to RGB.
-    let requested =
-        RequestedFormat::new::<RgbFormat>(RequestedFormatType::AbsoluteHighestFrameRate);
-    // make the camera
-    let mut camera = CallbackCamera::new(index, requested, move |buf| {
-        let val = percentile(&buf.decode_image::<LumaFormat>().unwrap(), 90);
-        hists.store(val, Ordering::Relaxed);
-    })
-    .unwrap();
-    let cam = camera.open_stream();
-    if cam.err().is_some() {
-        hists_clone.store(100, Ordering::Relaxed);
-    }
-    // });
+    let mut handle_vec = vec![]; // JoinHandles will go in here
+
+    let handle = thread::spawn(move || {
+        // eprint!("cAmera time");
+        // let index = CameraIndex::Index(0);
+        // // request the absolute highest resolution CameraFormat that can be decoded to RGB.
+        // let requested: RequestedFormat =
+        //     RequestedFormat::new::<RgbFormat>(RequestedFormatType::AbsoluteHighestFrameRate);
+        // // make the camera
+        // let mut camera = CallbackCamera::new(index, requested, move |buf| {
+        //     let val = percentile(&buf.decode_image::<LumaFormat>().unwrap(), 90);
+        //     hists.store(val, Ordering::Relaxed);
+        // })
+        // .unwrap();
+        // let _cam = camera.open_stream();
+
+        eprint!("cAmera time\n");
+        let cameras = query(ApiBackend::Auto).unwrap();
+        // cameras.iter().for_each(|cam| println!("{:?}", cam));
+        // eprint!("{}", cameras.len());
+        if cameras.len() > 0 {
+            // request the absolute highest resolution CameraFormat that can be decoded to RGB.
+            let requested: RequestedFormat =
+                RequestedFormat::new::<RgbFormat>(RequestedFormatType::AbsoluteHighestFrameRate);
+            // make the camera
+            let mut camera = match CallbackCamera::new(CameraIndex::Index(1), requested, move |buf| {
+                let val = percentile(&buf.decode_image::<LumaFormat>().unwrap(), 90);
+                hists_clone.store(val, Ordering::Relaxed);
+                // eprint!("\n{}", val);
+            }) {
+                Ok(val) =>{
+                    val
+                },
+                Err(err) => {
+                    eprint!("{}", err);
+                    return;
+                }
+            };
+            camera.open_stream().unwrap();
+            loop {
+                // eprint!("2");
+            }
+        }
+    });
+    handle_vec.push(handle); // save the handle so we can call join on it outside of the loop
+
     loop {
         let tick = frame_timer.tick();
         clock_scene.tick(&mut canvas2, &tick);
-        if hists_clone.load(Ordering::Relaxed) <= 14 {
+        if hists.load(Ordering::Relaxed) <= 18 {
             filter_darken(&mut canvas2, 0.00262);
             client.send_frame(canvas2.pixels());
         } else {
