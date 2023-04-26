@@ -1,6 +1,5 @@
 mod scenes;
 
-use image::load_from_memory;
 use imageproc::stats::percentile;
 use led_matrix_zmq::client::{MatrixClient, MatrixClientSettings};
 use nokhwa::{
@@ -265,21 +264,6 @@ fn filter_darken(canvas: &mut Canvas, lightness: f32) {
     }
 }
 
-fn camera_start(hists: Arc<AtomicU8>) {
-    eprint!("cAmera time");
-    let index = CameraIndex::Index(0);
-    // request the absolute highest resolution CameraFormat that can be decoded to RGB.
-    let requested: RequestedFormat =
-        RequestedFormat::new::<RgbFormat>(RequestedFormatType::AbsoluteHighestFrameRate);
-    // make the camera
-    let mut camera = CallbackCamera::new(index, requested, move |buf| {
-        let val = percentile(&buf.decode_image::<LumaFormat>().unwrap(), 90);
-        hists.store(val, Ordering::Relaxed);
-    })
-    .unwrap();
-    let _cam = camera.open_stream();
-}
-
 fn main() {
     let client = MatrixClient::new(MatrixClientSettings {
         addr: "tcp://localhost:42024".to_string(),
@@ -298,32 +282,17 @@ fn main() {
     let mut handle_vec = vec![]; // JoinHandles will go in here
 
     let handle = thread::spawn(move || {
-        // eprint!("cAmera time");
-        // let index = CameraIndex::Index(0);
-        // // request the absolute highest resolution CameraFormat that can be decoded to RGB.
-        // let requested: RequestedFormat =
-        //     RequestedFormat::new::<RgbFormat>(RequestedFormatType::AbsoluteHighestFrameRate);
-        // // make the camera
-        // let mut camera = CallbackCamera::new(index, requested, move |buf| {
-        //     let val = percentile(&buf.decode_image::<LumaFormat>().unwrap(), 90);
-        //     hists.store(val, Ordering::Relaxed);
-        // })
-        // .unwrap();
-        // let _cam = camera.open_stream();
 
         eprint!("cAmera time\n");
         let cameras = query(ApiBackend::Auto).unwrap();
-        // cameras.iter().for_each(|cam| println!("{:?}", cam));
-        // eprint!("{}", cameras.len());
         if cameras.len() > 0 {
             // request the absolute highest resolution CameraFormat that can be decoded to RGB.
             let requested: RequestedFormat =
                 RequestedFormat::new::<RgbFormat>(RequestedFormatType::AbsoluteHighestFrameRate);
             // make the camera
-            let mut camera = match CallbackCamera::new(CameraIndex::Index(1), requested, move |buf| {
+            let mut camera = match CallbackCamera::new(CameraIndex::Index(0), requested, move |buf| {
                 let val = percentile(&buf.decode_image::<LumaFormat>().unwrap(), 90);
                 hists_clone.store(val, Ordering::Relaxed);
-                // eprint!("\n{}", val);
             }) {
                 Ok(val) =>{
                     val
