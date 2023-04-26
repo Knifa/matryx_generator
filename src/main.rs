@@ -341,7 +341,7 @@ fn main() {
             let mut canvas4 = canvas_wave.clone();
             // filter_background(&mut canvas3, &mut canvas2);
             // filter_bright_foreground(&mut canvas4, &mut canvas_wave, 0.01);
-            filter_bright_background(&mut canvas4, &mut canvas_clock, 0.01);
+            filter_bright_background(&mut canvas4, &mut canvas_clock, 0.1);
             client.send_frame(canvas4.pixels());
         }
         frame_timer.wait_for_next_frame();
