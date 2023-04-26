@@ -254,6 +254,25 @@ fn filter_bright_foreground(canvas: &mut Canvas, canvas2: &mut Canvas, lightness
     }
 }
 
+fn filter_bright_background(canvas: &mut Canvas, canvas2: &mut Canvas, lightness: f32) {
+    for y in 0..canvas.height {
+        for x in 0..canvas.width {
+            let curr_pixel2 = canvas2.get_pixel(x, y);
+            let curr_pixel = canvas.get_pixel(x, y);
+            if curr_pixel2[0] == 0.0 && curr_pixel2[1] == 0.0 && curr_pixel2[2] == 0.0 {
+                // canvas.set_pixel(x, y, curr_pixel[0], curr_pixel[1], curr_pixel[2]);
+                // lighten?
+                // let my_rgb = color_lightness(curr_pixel, 1.0);
+                // canvas.set_pixel(x, y, my_rgb.red, /my_rgb.green, my_rgb.blue);
+            } else {
+                // darken
+                let my_rgb = color_lightness(curr_pixel, lightness);
+                canvas.set_pixel(x, y, my_rgb.red, my_rgb.green, my_rgb.blue);
+            }
+        }
+    }
+}
+
 fn filter_darken(canvas: &mut Canvas, lightness: f32) {
     for y in 0..canvas.height {
         for x in 0..canvas.width {
@@ -269,13 +288,13 @@ fn main() {
         addr: "tcp://localhost:42024".to_string(),
     });
 
-    let mut canvas = Canvas::new(64, 32);
-    let mut canvas2 = Canvas::new(64, 32);
-    let mut canvas3 = Canvas::new(64, 32);
+    // let mut canvas_plasma = Canvas::new(64, 32);
+    let mut canvas_clock = Canvas::new(64, 32);
+    let mut canvas_wave = Canvas::new(64, 32);
     let mut frame_timer = FrameTimer::new();
-    let mut scene = WaveScene::new(&canvas3, 1.0);
-    let mut clock_scene: ClockScene = ClockScene::new(&canvas2);
-    let mut plasma_scene: PlasmaScene = PlasmaScene::new(0.1);
+    let mut scene = WaveScene::new(&canvas_wave, 1.0);
+    let mut clock_scene: ClockScene = ClockScene::new(&canvas_clock);
+    // let mut plasma_scene: PlasmaScene = PlasmaScene::new(0.1);
     let hists = Arc::new(AtomicU8::new(100));
     let hists_clone = hists.clone();
 
@@ -312,16 +331,17 @@ fn main() {
 
     loop {
         let tick = frame_timer.tick();
-        clock_scene.tick(&mut canvas2, &tick);
+        clock_scene.tick(&mut canvas_clock, &tick);
         if hists.load(Ordering::Relaxed) <= 18 {
-            filter_darken(&mut canvas2, 0.00262);
-            client.send_frame(canvas2.pixels());
+            filter_darken(&mut canvas_clock, 0.00262);
+            client.send_frame(canvas_clock.pixels());
         } else {
-            scene.tick(&mut canvas3, &tick);
-            plasma_scene.tick(&mut canvas, &tick);
-            let mut canvas4 = canvas2.clone();
+            scene.tick(&mut canvas_wave, &tick);
+            // plasma_scene.tick(&mut canvas_plasma, &tick);
+            let mut canvas4 = canvas_wave.clone();
             // filter_background(&mut canvas3, &mut canvas2);
-            filter_bright_foreground(&mut canvas4, &mut canvas3, 0.01);
+            // filter_bright_foreground(&mut canvas4, &mut canvas_wave, 0.01);
+            filter_bright_background(&mut canvas4, &mut canvas_clock, 0.01);
             client.send_frame(canvas4.pixels());
         }
         frame_timer.wait_for_next_frame();
