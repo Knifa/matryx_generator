@@ -11,12 +11,13 @@ use nokhwa::{
 
 use palette::{rgb::Rgb, FromColor, Hsl, IntoColor, Lch, Srgb};
 use std::{
+    i8::MAX,
     sync::{
         atomic::{AtomicU8, Ordering},
         Arc,
     },
-    thread,
-    time::{self},
+    thread::{self, sleep},
+    time::{self, Duration},
 };
 
 use scenes::{ClockScene, PlasmaScene, WaveScene};
@@ -300,13 +301,13 @@ fn main() {
 
     let mut handle_vec = vec![]; // JoinHandles will go in here
 
-    let handle = thread::spawn(move || cam_thread(hists_clone));
+    let handle = thread::spawn(move || cam_thread_loop(hists_clone));
     handle_vec.push(handle); // save the handle so we can call join on it outside of the loop
 
     loop {
         let tick = frame_timer.tick();
         clock_scene.tick(&mut canvas_clock, &tick);
-        if hists.load(Ordering::Relaxed) <= 18 {
+        if hists.load(Ordering::Relaxed) <= 20 {
             filter_darken(&mut canvas_clock, 0.00262);
             client.send_frame(canvas_clock.pixels());
         } else {
@@ -322,8 +323,30 @@ fn main() {
     }
 }
 
-fn cam_thread(hists_clone: Arc<AtomicU8>) {
-    eprint!("Camera time\n");
+fn cam_thread_loop(hists_clone: Arc<AtomicU8>) {
+    let mut attempt: i8 = 1;
+    let mut cam_thread_ret = cam_thread(hists_clone.clone(), attempt);
+    loop {
+        match cam_thread_ret {
+            Ok(v) => {
+                println!("unreachable: {v:?}");
+            }
+            Err(e) => {
+                println!("Camera Error: {e:?}");
+                if attempt == MAX {
+                    attempt = 1;
+                } else {
+                    attempt = attempt + 1;
+                }
+                cam_thread_ret = cam_thread(hists_clone.clone(), attempt);
+            }
+        }
+        sleep(Duration::from_secs(1));
+    }
+}
+
+fn cam_thread(hists_clone: Arc<AtomicU8>, attempt: i8) -> Result<i32, i32> {
+    eprint!("Camera time, Attempt: {}\n", attempt);
     let cameras = query(ApiBackend::Auto).unwrap();
     if cameras.len() > 0 {
         // request the absolute highest resolution CameraFormat that can be decoded to RGB.
@@ -336,13 +359,17 @@ fn cam_thread(hists_clone: Arc<AtomicU8>) {
         }) {
             Ok(val) => val,
             Err(err) => {
-                eprint!("{}", err);
-                return;
+                eprint!("{}\n", err);
+                return Err(-2);
             }
         };
         camera.open_stream().unwrap();
-        loop {
-            // eprint!("2");
-        }
+        sleep(Duration::from_secs(3)); // otherwise thread does not finish spawning and the method returns (??)
+                                       // loop {
+        eprint!("2");
+        // }
+        return Err(-3); // also returns if thread dies
+    } else {
+        return Err(-1);
     }
 }
