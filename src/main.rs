@@ -337,7 +337,6 @@ fn main() {
             } else {
                 shifter = shifter + 1.0;
             }
-            eprintln!("{}", shifter);
             filter_hue_shift(&mut canvas_wave, shifter);
             client.send_frame(canvas_wave.pixels());
         }
