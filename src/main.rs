@@ -9,9 +9,8 @@ use nokhwa::{
     CallbackCamera,
 };
 
-use palette::{rgb::Rgb, FromColor, Hsl, IntoColor, Lch, Srgb};
+use palette::{rgb::Rgb, FromColor, Hsl, IntoColor, Lch, Srgb, ShiftHue};
 use std::{
-    i8::MAX,
     sync::{
         atomic::{AtomicU8, Ordering},
         Arc,
@@ -284,6 +283,20 @@ fn filter_darken(canvas: &mut Canvas, lightness: f32) {
     }
 }
 
+fn filter_hue_shift(canvas: &mut Canvas, shift: f32) {
+    for y in 0..canvas.height {
+        for x in 0..canvas.width {
+            let curr_pixel = canvas.get_pixel(x, y);
+
+
+            let my_rgb = Srgb::new(curr_pixel[0], curr_pixel[1], curr_pixel[2]);
+            let hue_shifted = Lch::from_color(my_rgb).shift_hue(shift);
+            let new_pixel = Srgb::from_color(hue_shifted);
+            canvas.set_pixel(x, y, new_pixel.red, new_pixel.green, new_pixel.blue);
+        }
+    }
+}
+
 fn main() {
     let client = MatrixClient::new(MatrixClientSettings {
         addr: "tcp://localhost:42024".to_string(),
@@ -304,6 +317,8 @@ fn main() {
     let handle = thread::spawn(move || cam_thread_loop(hists_clone));
     handle_vec.push(handle); // save the handle so we can call join on it outside of the loop
 
+    let mut shifter: f32 = -180.0;
+
     loop {
         let tick = frame_timer.tick();
         clock_scene.tick(&mut canvas_clock, &tick);
@@ -317,6 +332,13 @@ fn main() {
             // filter_background(&mut canvas3, &mut canvas2);
             // filter_bright_foreground(&mut canvas4, &mut canvas_wave, 0.01);
             filter_bright_background(&mut canvas_wave, &mut canvas_clock, 0.1);
+            if shifter == 360.0{
+                shifter = -360.0;
+            } else {
+                shifter = shifter + 1.0;
+            }
+            eprintln!("{}", shifter);
+            filter_hue_shift(&mut canvas_wave, shifter);
             client.send_frame(canvas_wave.pixels());
         }
         frame_timer.wait_for_next_frame();
@@ -333,7 +355,7 @@ fn cam_thread_loop(hists_clone: Arc<AtomicU8>) {
             }
             Err(e) => {
                 println!("Camera Error: {e:?}");
-                if attempt == MAX {
+                if attempt == std::i8::MAX {
                     attempt = 1;
                 } else {
                     attempt = attempt + 1;

@@ -7,11 +7,11 @@ edition = "2021"
 led_matrix_zmq = { git = "https://github.com/Knifa/led_matrix_zmq.git" }
 # led_matrix_zmq = { path = "../led_matrix_zmq" }
 
-palette = "0.6.0"
-rand = "0.8.4"
-embedded-graphics = "0.7.1"
-chrono = "0.4.24"
-u8g2-fonts = { version = "0.2.0", features = ["embedded_graphics_textstyle"] }
-nokhwa = { version = "0.10.3", features = ["input-native","output-threaded"]}
+palette = "0.7.2"
+rand = "0.8.5"
+embedded-graphics = "0.8.0"
+chrono = "0.4.26"
+u8g2-fonts = { version = "0.3.0", features = ["embedded_graphics_textstyle"] }
+nokhwa = { version = "0.10.4", features = ["input-native","output-threaded"]}
 image = { version = "0.24.6",  default-features = false, features = ["png","jpeg"] }
 imageproc = "0.23.0"
