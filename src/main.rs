@@ -300,33 +300,7 @@ fn main() {
 
     let mut handle_vec = vec![]; // JoinHandles will go in here
 
-    let handle = thread::spawn(move || {
-
-        eprint!("cAmera time\n");
-        let cameras = query(ApiBackend::Auto).unwrap();
-        if cameras.len() > 0 {
-            // request the absolute highest resolution CameraFormat that can be decoded to RGB.
-            let requested: RequestedFormat =
-                RequestedFormat::new::<RgbFormat>(RequestedFormatType::AbsoluteHighestFrameRate);
-            // make the camera
-            let mut camera = match CallbackCamera::new(CameraIndex::Index(0), requested, move |buf| {
-                let val = percentile(&buf.decode_image::<LumaFormat>().unwrap(), 90);
-                hists_clone.store(val, Ordering::Relaxed);
-            }) {
-                Ok(val) =>{
-                    val
-                },
-                Err(err) => {
-                    eprint!("{}", err);
-                    return;
-                }
-            };
-            camera.open_stream().unwrap();
-            loop {
-                // eprint!("2");
-            }
-        }
-    });
+    let handle = thread::spawn(move || cam_thread(hists_clone));
     handle_vec.push(handle); // save the handle so we can call join on it outside of the loop
 
     loop {
@@ -338,12 +312,37 @@ fn main() {
         } else {
             scene.tick(&mut canvas_wave, &tick);
             // plasma_scene.tick(&mut canvas_plasma, &tick);
-            let mut canvas4 = canvas_wave.clone();
+            // let mut canvas4 = canvas_wave.clone();
             // filter_background(&mut canvas3, &mut canvas2);
             // filter_bright_foreground(&mut canvas4, &mut canvas_wave, 0.01);
-            filter_bright_background(&mut canvas4, &mut canvas_clock, 0.1);
-            client.send_frame(canvas4.pixels());
+            filter_bright_background(&mut canvas_wave, &mut canvas_clock, 0.1);
+            client.send_frame(canvas_wave.pixels());
         }
         frame_timer.wait_for_next_frame();
+    }
+}
+
+fn cam_thread(hists_clone: Arc<AtomicU8>) {
+    eprint!("Camera time\n");
+    let cameras = query(ApiBackend::Auto).unwrap();
+    if cameras.len() > 0 {
+        // request the absolute highest resolution CameraFormat that can be decoded to RGB.
+        let requested: RequestedFormat =
+            RequestedFormat::new::<RgbFormat>(RequestedFormatType::AbsoluteHighestFrameRate);
+        // make the camera
+        let mut camera = match CallbackCamera::new(CameraIndex::Index(0), requested, move |buf| {
+            let val = percentile(&buf.decode_image::<LumaFormat>().unwrap(), 90);
+            hists_clone.store(val, Ordering::Relaxed);
+        }) {
+            Ok(val) => val,
+            Err(err) => {
+                eprint!("{}", err);
+                return;
+            }
+        };
+        camera.open_stream().unwrap();
+        loop {
+            // eprint!("2");
+        }
     }
 }
