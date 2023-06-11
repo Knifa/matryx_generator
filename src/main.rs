@@ -332,8 +332,8 @@ fn main() {
             // filter_background(&mut canvas3, &mut canvas2);
             // filter_bright_foreground(&mut canvas4, &mut canvas_wave, 0.01);
             filter_bright_background(&mut canvas_wave, &mut canvas_clock, 0.1);
-            if shifter == 360.0{
-                shifter = -360.0;
+            if shifter == 180.0{
+                shifter = -180.0;
             } else {
                 shifter = shifter + 1.0;
             }
