@@ -1,0 +1,42 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'matryx_generator'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=matryx_generator",
+                    "--package=matryx_generator"
+                ],
+                "filter": {
+                    "name": "matryx_generator",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'matryx_generator'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=matryx_generator",
+                    "--package=matryx_generator"
+                ],
+                "filter": {
+                    "name": "matryx_generator",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}
