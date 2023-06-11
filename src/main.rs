@@ -278,7 +278,16 @@ fn filter_darken(canvas: &mut Canvas, lightness: f32) {
         for x in 0..canvas.width {
             let curr_pixel = canvas.get_pixel(x, y);
             let my_rgb = color_lightness(curr_pixel, lightness);
-            canvas.set_pixel(x, y, my_rgb.red, my_rgb.green, my_rgb.blue);
+            canvas.set_pixel(x, y, my_rgb.red, 0.0,0.0);
+        }
+    }
+}
+
+fn filter_red(canvas: &mut Canvas) {
+    for y in 0..canvas.height {
+        for x in 0..canvas.width {
+            let curr_pixel = canvas.get_pixel(x, y);
+            canvas.set_pixel(x, y, curr_pixel[0], 0.0, 0.0);
         }
     }
 }
@@ -287,7 +296,6 @@ fn filter_hue_shift(canvas: &mut Canvas, shift: f32) {
     for y in 0..canvas.height {
         for x in 0..canvas.width {
             let curr_pixel = canvas.get_pixel(x, y);
-
 
             let my_rgb = Srgb::new(curr_pixel[0], curr_pixel[1], curr_pixel[2]);
             let hue_shifted = Lch::from_color(my_rgb).shift_hue(shift);
@@ -322,8 +330,9 @@ fn main() {
     loop {
         let tick = frame_timer.tick();
         clock_scene.tick(&mut canvas_clock, &tick);
-        if hists.load(Ordering::Relaxed) <= 20 {
-            filter_darken(&mut canvas_clock, 0.00262);
+        if hists.load(Ordering::Relaxed) <= 16 {
+            filter_darken(&mut canvas_clock, 0.003922);
+            // filter_red(&mut canvas_clock);
             client.send_frame(canvas_clock.pixels());
         } else {
             scene.tick(&mut canvas_wave, &tick);
