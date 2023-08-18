@@ -384,7 +384,7 @@ fn cam_thread(hists_clone: Arc<AtomicU8>, attempt: i8) -> Result<i32, i32> {
         let requested: RequestedFormat =
             RequestedFormat::new::<RgbFormat>(RequestedFormatType::HighestFrameRate(30));
         // make the camera
-        let mut camera = match CallbackCamera::new(CameraIndex::Index(2), requested, move |buf| {
+        let mut camera = match CallbackCamera::new(CameraIndex::Index(0), requested, move |buf| {
             let val = percentile(&buf.decode_image::<LumaFormat>().unwrap(), 90);
             hists_clone.store(val, Ordering::Relaxed);
         }) {
