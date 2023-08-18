@@ -15,4 +15,3 @@ u8g2-fonts = { version = "0.3.0", features = ["embedded_graphics_textstyle"] }
 nokhwa = { version = "0.10.4", features = ["input-native","output-threaded"]}
 image = { version = "0.24.6",  default-features = false, features = ["png","jpeg"] }
 imageproc = "0.23.0"
-simple_moving_average = "0.1.2"

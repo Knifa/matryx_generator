@@ -10,7 +10,6 @@ use nokhwa::{
 };
 
 use palette::{rgb::Rgb, FromColor, Hsl, IntoColor, Lch, Srgb, ShiftHue};
-use simple_moving_average::{SingleSumSMA, SMA};
 use std::{
     sync::{
         atomic::{AtomicU8, Ordering},
@@ -328,13 +327,10 @@ fn main() {
 
     let mut shifter: f32 = -180.0;
 
-    let mut moving_average = SingleSumSMA::<_, u8, 5>::new(); // Sample window size = 2
-
     loop {
         let tick = frame_timer.tick();
         clock_scene.tick(&mut canvas_clock, &tick);
-        moving_average.add_sample(hists.load(Ordering::Relaxed));
-        if moving_average.get_average() <= 16 {
+        if hists.load(Ordering::Relaxed) <= 16 {
             filter_darken(&mut canvas_clock, 0.003922);
             // filter_red(&mut canvas_clock);
             client.send_frame(canvas_clock.pixels());
