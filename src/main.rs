@@ -330,7 +330,7 @@ fn main() {
     loop {
         let tick = frame_timer.tick();
         clock_scene.tick(&mut canvas_clock, &tick);
-        if hists.load(Ordering::Relaxed) <= 16 {
+        if hists.load(Ordering::Relaxed) <= 22 {
             filter_darken(&mut canvas_clock, 0.003922);
             // filter_red(&mut canvas_clock);
             client.send_frame(canvas_clock.pixels());
