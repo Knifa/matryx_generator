@@ -228,7 +228,7 @@ fn filter_foreground(canvas: &mut Canvas, canvas2: &mut Canvas) {
 }
 
 fn color_lightness(curr_pixel: [f32; 3], lightness: f32) -> Rgb {
-    let my_rgb = Srgb::new(curr_pixel[0], curr_pixel[1], curr_pixel[2]);
+    let my_rgb = Srgbz::new(curr_pixel[0], curr_pixel[1], curr_pixel[2]);
     let my_lch = Lch::from_color(my_rgb);
     let mut my_hsl: Hsl = my_lch.into_color();
     my_hsl.lightness *= lightness;
@@ -371,7 +371,7 @@ fn cam_thread_loop(hists_clone: Arc<AtomicU8>) {
                 cam_thread_ret = cam_thread(hists_clone.clone(), attempt);
             }
         }
-        sleep(Duration::from_secs(1));
+        sleep(Duration::from_secs(5));
     }
 }
 
@@ -386,6 +386,7 @@ fn cam_thread(hists_clone: Arc<AtomicU8>, attempt: i8) -> Result<i32, i32> {
         let mut camera = match CallbackCamera::new(CameraIndex::Index(0), requested, move |buf| {
             let val = percentile(&buf.decode_image::<LumaFormat>().unwrap(), 90);
             hists_clone.store(val, Ordering::Relaxed);
+            sleep(Duration::from_secs(5));
         }) {
             Ok(val) => val,
             Err(err) => {
