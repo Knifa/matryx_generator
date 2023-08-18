@@ -40,7 +40,7 @@ impl Scene for ClockScene {
         //     canvas,
         // )
         // .unwrap();
-        let times = date.format("%H:%M").to_string();
+        let times = date.format("%I:%M").to_string();
         // // let text_style = MonoTextStyle::new(
         //     &u8g2_font_haxrcorp4089_t_cyrillic,
         //     Rgb888::new(0xff, 0xff, 0xff),

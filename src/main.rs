@@ -381,12 +381,11 @@ fn cam_thread(hists_clone: Arc<AtomicU8>, attempt: i8) -> Result<i32, i32> {
     if cameras.len() > 0 {
         // request the absolute highest resolution CameraFormat that can be decoded to RGB.
         let requested: RequestedFormat =
-            RequestedFormat::new::<RgbFormat>(RequestedFormatType::AbsoluteHighestFrameRate);
+            RequestedFormat::new::<RgbFormat>(RequestedFormatType::None);
         // make the camera
         let mut camera = match CallbackCamera::new(CameraIndex::Index(0), requested, move |buf| {
             let val = percentile(&buf.decode_image::<LumaFormat>().unwrap(), 90);
             hists_clone.store(val, Ordering::Relaxed);
-            sleep(Duration::from_secs(2));
         }) {
             Ok(val) => val,
             Err(err) => {
