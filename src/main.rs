@@ -330,7 +330,8 @@ fn main() {
     loop {
         let tick = frame_timer.tick();
         clock_scene.tick(&mut canvas_clock, &tick);
-        if hists.load(Ordering::Relaxed) <= 22 {
+        println!("{0}",hists.load(Ordering::Acquire));
+        if hists.load(Ordering::Acquire) <= 22 {
             filter_darken(&mut canvas_clock, 0.003922);
             // filter_red(&mut canvas_clock);
             client.send_frame(canvas_clock.pixels());
@@ -381,9 +382,9 @@ fn cam_thread(hists_clone: Arc<AtomicU8>, attempt: i8) -> Result<i32, i32> {
     if cameras.len() > 0 {
         // request the absolute highest resolution CameraFormat that can be decoded to RGB.
         let requested: RequestedFormat =
-            RequestedFormat::new::<RgbFormat>(RequestedFormatType::None);
+            RequestedFormat::new::<RgbFormat>(RequestedFormatType::HighestFrameRate(30));
         // make the camera
-        let mut camera = match CallbackCamera::new(CameraIndex::Index(0), requested, move |buf| {
+        let mut camera = match CallbackCamera::new(CameraIndex::Index(2), requested, move |buf| {
             let val = percentile(&buf.decode_image::<LumaFormat>().unwrap(), 90);
             hists_clone.store(val, Ordering::Relaxed);
         }) {
@@ -403,3 +404,35 @@ fn cam_thread(hists_clone: Arc<AtomicU8>, attempt: i8) -> Result<i32, i32> {
         return Err(-1);
     }
 }
+
+
+// CommandsProper::ListDevices => {
+//     let backend = native_api_backend().unwrap();
+//     let devices = query(backend).unwrap();
+//     println!("There are {} available cameras.", devices.len());
+//     for device in devices {
+//         println!("{device}");
+//     }
+// }
+// CommandsProper::ListProperties { device, kind } => {
+//     let index = match device.as_ref().unwrap_or(&IndexKind::Index(0)) {
+//         IndexKind::String(s) => CameraIndex::String(s.clone()),
+//         IndexKind::Index(i) => CameraIndex::Index(*i),
+//     };
+//     let mut camera = Camera::new(
+//         index,
+//         RequestedFormat::new::<RgbFormat>(RequestedFormatType::None),
+//     )
+//     .unwrap();
+//     match kind {
+//         PropertyKind::All => {
+//             camera_print_controls(&camera);
+//             camera_compatible_formats(&mut camera);
+//         }
+//         PropertyKind::Controls => {
+//             camera_print_controls(&camera);
+//         }
+//         PropertyKind::CompatibleFormats => {
+//             camera_compatible_formats(&mut camera);
+//         }
+//     }
