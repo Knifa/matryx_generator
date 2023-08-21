@@ -1,17 +1,17 @@
 [package]
 name = "matryx_generator"
-version = "0.2.0"
+version = "0.2.2"
 edition = "2021"
 
 [dependencies]
-led_matrix_zmq = { git = "https://github.com/Knifa/led_matrix_zmq.git" }
+led_matrix_zmq = { git = "https://github.com/mmhobi7/led_matrix_zmq.git" }
 # led_matrix_zmq = { path = "../led_matrix_zmq" }
 
-palette = "0.7.2"
+palette = "0.7.3"
 rand = "0.8.5"
-embedded-graphics = "0.8.0"
+embedded-graphics = "0.8.1"
 chrono = "0.4.26"
 u8g2-fonts = { version = "0.3.0", features = ["embedded_graphics_textstyle"] }
 nokhwa = { version = "0.10.4", features = ["input-native","output-threaded"]}
-image = { version = "0.24.6",  default-features = false, features = ["png","jpeg"] }
+image = { version = "0.24.7",  default-features = false, features = ["png","jpeg"] }
 imageproc = "0.23.0"
