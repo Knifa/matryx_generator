@@ -12,6 +12,6 @@ rand = "0.8.5"
 embedded-graphics = "0.8.1"
 chrono = "0.4.26"
 u8g2-fonts = { version = "0.3.0", features = ["embedded_graphics_textstyle"] }
-nokhwa = { version = "0.10.4", features = ["input-native","output-threaded"]}
+nokhwa = { version = "0.10.4", features = ["input-native","output-threaded", "decoding"]}
 image = { version = "0.24.7",  default-features = false, features = ["png","jpeg"] }
 imageproc = "0.23.0"
