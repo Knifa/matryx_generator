@@ -1,15 +1,11 @@
 mod scenes;
 
+use image::{DynamicImage, ImageBuffer};
 use imageproc::stats::percentile;
 use led_matrix_zmq::client::{MatrixClient, MatrixClientSettings};
-use nokhwa::{
-    pixel_format::{LumaFormat, RgbFormat},
-    query,
-    utils::{ApiBackend, CameraIndex, RequestedFormat, RequestedFormatType},
-    CallbackCamera,
-};
 
-use palette::{rgb::Rgb, FromColor, Hsl, IntoColor, Lch, Srgb, ShiftHue};
+use jpeg_decoder as jpeg;
+use palette::{rgb::Rgb, FromColor, Hsl, IntoColor, Lch, ShiftHue, Srgb};
 use std::{
     sync::{
         atomic::{AtomicU8, Ordering},
@@ -19,7 +15,14 @@ use std::{
     time::{self, Duration},
 };
 
-use scenes::{ClockScene, PlasmaScene, WaveScene};
+use v4l::buffer::Type;
+use v4l::io::traits::CaptureStream;
+use v4l::prelude::*;
+use v4l::video::Capture;
+use v4l::Device;
+use v4l::FourCC;
+
+use scenes::{ClockScene, WaveScene};
 
 use embedded_graphics::{
     draw_target::DrawTarget,
@@ -278,7 +281,7 @@ fn filter_darken(canvas: &mut Canvas, lightness: f32) {
         for x in 0..canvas.width {
             let curr_pixel = canvas.get_pixel(x, y);
             let my_rgb = color_lightness(curr_pixel, lightness);
-            canvas.set_pixel(x, y, my_rgb.red, 0.0,0.0);
+            canvas.set_pixel(x, y, my_rgb.red, 0.0, 0.0);
         }
     }
 }
@@ -310,6 +313,7 @@ fn main() {
         addr: "tcp://localhost:42024".to_string(),
     });
 
+    println!("33");
     // let mut canvas_plasma = Canvas::new(64, 32);
     let mut canvas_clock = Canvas::new(64, 32);
     let mut canvas_wave = Canvas::new(64, 32);
@@ -330,7 +334,7 @@ fn main() {
     loop {
         let tick = frame_timer.tick();
         clock_scene.tick(&mut canvas_clock, &tick);
-        println!("{0}",hists.load(Ordering::Acquire));
+        println!("{0}", hists.load(Ordering::Acquire));
         if hists.load(Ordering::Acquire) <= 22 {
             filter_darken(&mut canvas_clock, 0.003922);
             // filter_red(&mut canvas_clock);
@@ -342,7 +346,7 @@ fn main() {
             // filter_background(&mut canvas3, &mut canvas2);
             // filter_bright_foreground(&mut canvas4, &mut canvas_wave, 0.01);
             filter_bright_background(&mut canvas_wave, &mut canvas_clock, 0.1);
-            if shifter == 180.0{
+            if shifter == 180.0 {
                 shifter = -180.0;
             } else {
                 shifter = shifter + 1.0;
@@ -378,33 +382,137 @@ fn cam_thread_loop(hists_clone: Arc<AtomicU8>) {
 
 fn cam_thread(hists_clone: Arc<AtomicU8>, attempt: i8) -> Result<i32, i32> {
     eprint!("Camera time, Attempt: {}\n", attempt);
-    let cameras = query(ApiBackend::Auto).unwrap();
-    if cameras.len() > 0 {
-        // request the absolute highest resolution CameraFormat that can be decoded to RGB.
-        let requested: RequestedFormat =
-            RequestedFormat::new::<RgbFormat>(RequestedFormatType::HighestFrameRate(30));
-        // make the camera
-        let mut camera = match CallbackCamera::new(CameraIndex::Index(0), requested, move |buf| {
-            let val = percentile(&buf.decode_image::<LumaFormat>().unwrap(), 90);
-            hists_clone.store(val, Ordering::Relaxed);
-        }) {
-            Ok(val) => val,
-            Err(err) => {
-                eprint!("{}\n", err);
-                return Err(-2);
-            }
-        };
-        camera.open_stream().unwrap();
-        sleep(Duration::from_secs(3)); // otherwise thread does not finish spawning and the method returns (??)
-                                       // loop {
-        eprint!("2");
-        // }
-        return Err(-3); // also returns if thread dies
-    } else {
-        return Err(-1);
-    }
-}
+    let mut dev = Device::new(0).expect("Failed to open device");
 
+    // Let's say we want to explicitly request another format
+    let mut format = dev.format().expect("Failed to read format");
+    // let mut params = dev.params().expect("Failed to read params");
+
+    // fmt.width = 1280;
+    // fmt.height = 720;
+    // fmt.fourcc = FourCC::new(b"YUYV");
+    // try RGB3 first
+    // println!("Active format:\n{}", format);
+    // println!("Active parameters:\n{}", params);
+
+    format.fourcc = FourCC::new(b"RGB3");
+    format = dev.set_format(&format).unwrap();
+
+    if format.fourcc != FourCC::new(b"RGB3") {
+        // fallback to Motion-JPEG
+        format.fourcc = FourCC::new(b"MJPG");
+        format = dev.set_format(&format).unwrap();
+    }
+
+    println!("Active format:\n{}", format);
+    // println!("Active parameters:\n{}", params);
+
+    // The actual format chosen by the device driver may differ from what we
+    // requested! Print it out to get an idea of what is actually used now.
+
+    // let controls = dev.query_controls().unwrap();
+
+    // for control in controls {
+    //     println!("{}", control);
+    // }
+
+    // println!("Available formats:");
+    // for format in dev.enum_formats().unwrap() {
+    //     println!("  {} ({})", format.fourcc, format.description);
+
+    //     for framesize in dev.enum_framesizes(format.fourcc).unwrap() {
+    //         for discrete in framesize.size.to_discrete() {
+    //             println!("    Size: {}", discrete);
+
+    //             for frameinterval in dev
+    //                 .enum_frameintervals(framesize.fourcc, discrete.width, discrete.height)
+    //                 .unwrap()
+    //             {
+    //                 println!("      Interval:  {}", frameinterval);
+    //             }
+    //         }
+    //     }
+    //     println!();
+    // }
+
+    // Now we'd like to capture some frames!
+    // First, we need to create a stream to read buffers from. We choose a
+    // mapped buffer stream, which uses mmap to directly access the device
+    // frame buffer. No buffers are copied nor allocated, so this is actually
+    // a zero-copy operation.
+
+    // To achieve the best possible performance, you may want to use a
+    // UserBufferStream instance, but this is not supported on all devices,
+    // so we stick to the mapped case for this example.
+    // Please refer to the rustdoc docs for a more detailed explanation about
+    // buffer transfers.
+
+    // Create the stream, which will internally 'allocate' (as in map) the
+    // number of requested buffers for us.
+    let mut stream = MmapStream::with_buffers(&mut dev, Type::VideoCapture, 1)
+        .expect("Failed to create buffer stream");
+
+    // At this point, the stream is ready and all buffers are setup.
+    // We can now read frames (represented as buffers) by iterating through
+    // the stream. Once an error condition occurs, the iterator will return
+    // None.
+    loop {
+        let (buf, _) = stream.next().unwrap();
+        let data = match &format.fourcc.repr {
+            b"RGB3" => buf.to_vec(),
+            b"MJPG" => {
+                // Decode the JPEG frame to RGB
+                let mut decoder = jpeg::Decoder::new(buf);
+                decoder.decode().expect("failed to decode JPEG")
+            }
+            _ => panic!("invalid buffer pixelformat"),
+        };
+        let img: ImageBuffer<image::Rgb<u8>, Vec<u8>> =
+            ImageBuffer::from_raw(format.width, format.height, data).unwrap();
+        let luma = DynamicImage::ImageRgb8(img).into_luma8();
+        let val = percentile(&luma, 90);
+        hists_clone.store(val, Ordering::Relaxed);
+        // println!(
+        //     "Buffer size: {}, seq: {}, timestamp: {}",
+        //     buf.len(),
+        //     meta.sequence,
+        //     meta.timestamp
+        // );
+        // let val = percentile(buf, 90);
+        // hists_clone.store(val, Ordering::Relaxed);
+
+        // To process the captured data, you can pass it somewhere else.
+        // If you want to modify the data or extend its lifetime, you have to
+        // copy it. This is a best-effort tradeoff solution that allows for
+        // zero-copy readers while enforcing a full clone of the data for
+        // writers.
+    }
+
+    // let cameras = query(ApiBackend::Auto).unwrap();
+    // if cameras.len() > 0 {
+    //     // request the absolute highest resolution CameraFormat that can be decoded to RGB.
+    //     let requested: RequestedFormat =
+    //         RequestedFormat::new::<RgbFormat>(RequestedFormatType::AbsoluteHighestResolution);
+    //     // make the camera
+    //     let mut camera = match CallbackCamera::new(CameraIndex::Index(0), requested, move |buf| {
+    //         let val = percentile(&buf.decode_image::<LumaFormat>().unwrap(), 90);
+    //         hists_clone.store(val, Ordering::Relaxed);
+    //     }) {
+    //         Ok(val) => val,
+    //         Err(err) => {
+    //             eprint!("{}\n", err);
+    //             return Err(-2);
+    //         }
+    //     };
+    //     camera.open_stream().unwrap();
+    //     sleep(Duration::from_secs(3)); // otherwise thread does not finish spawning and the method returns (??)
+    //                                    // loop {
+    //     eprint!("2");
+    //     // }
+    //     return Err(-3); // also returns if thread dies
+    // } else {
+    // }
+}
 
 // CommandsProper::ListDevices => {
 //     let backend = native_api_backend().unwrap();
