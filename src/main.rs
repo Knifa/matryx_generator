@@ -334,8 +334,8 @@ fn main() {
     loop {
         let tick = frame_timer.tick();
         clock_scene.tick(&mut canvas_clock, &tick);
-        println!("{0}", hists.load(Ordering::Acquire));
-        if hists.load(Ordering::Acquire) <= 22 {
+        //println!("{0}", hists.load(Ordering::Acquire));
+        if hists.load(Ordering::Acquire) <= 24 {
             filter_darken(&mut canvas_clock, 0.003922);
             // filter_red(&mut canvas_clock);
             client.send_frame(canvas_clock.pixels());
