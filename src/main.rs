@@ -382,7 +382,18 @@ fn cam_thread_loop(hists_clone: Arc<AtomicU8>) {
 
 fn cam_thread(hists_clone: Arc<AtomicU8>, attempt: i8) -> Result<i32, i32> {
     eprint!("Camera time, Attempt: {}\n", attempt);
-    let mut dev = Device::new(0).expect("Failed to open device");
+    // let mut dev = Device::new(2).unwrap();
+
+    let mut dev = {
+        let this = Device::new(0);
+        match this {
+            Ok(t) => t,
+            Err(e) => {
+                eprintln!("Device missing: {}",e);
+                return Err(-1);
+            },
+        }
+    };
 
     // Let's say we want to explicitly request another format
     let mut format = dev.format().expect("Failed to read format");
@@ -457,7 +468,16 @@ fn cam_thread(hists_clone: Arc<AtomicU8>, attempt: i8) -> Result<i32, i32> {
     // the stream. Once an error condition occurs, the iterator will return
     // None.
     loop {
-        let (buf, _) = stream.next().unwrap();
+        let (buf, _) = {
+            let this = stream.next();
+            match this {
+                Ok(t) => t,
+                Err(e) => {
+                    eprintln!("Camera thread dead: {}",e);
+                    return Err(-1);
+                },
+            }
+        };
         let data = match &format.fourcc.repr {
             b"RGB3" => buf.to_vec(),
             b"MJPG" => {
@@ -465,7 +485,10 @@ fn cam_thread(hists_clone: Arc<AtomicU8>, attempt: i8) -> Result<i32, i32> {
                 let mut decoder = jpeg::Decoder::new(buf);
                 decoder.decode().expect("failed to decode JPEG")
             }
-            _ => panic!("invalid buffer pixelformat"),
+            _ => {
+                eprintln!("invalid buffer pixelformat");
+                return Err(-2);
+            },
         };
         let img: ImageBuffer<image::Rgb<u8>, Vec<u8>> =
             ImageBuffer::from_raw(format.width, format.height, data).unwrap();
