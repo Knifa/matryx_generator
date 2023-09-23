@@ -389,14 +389,24 @@ fn cam_thread(hists_clone: Arc<AtomicU8>, attempt: i8) -> Result<i32, i32> {
         match this {
             Ok(t) => t,
             Err(e) => {
-                eprintln!("Device missing: {}",e);
+                eprintln!("Device missing: {}", e);
                 return Err(-1);
-            },
+            }
         }
     };
 
     // Let's say we want to explicitly request another format
-    let mut format = dev.format().expect("Failed to read format");
+    let mut format = {
+        let this = dev.format();
+        match this {
+            Ok(t) => t,
+            Err(e) => {
+                eprintln!("Failed to read format: {}", e);
+                return Err(-1);
+            }
+        }
+    };
+    // let mut format = dev.format().expect("Failed to read format");
     // let mut params = dev.params().expect("Failed to read params");
 
     // fmt.width = 1280;
@@ -407,12 +417,32 @@ fn cam_thread(hists_clone: Arc<AtomicU8>, attempt: i8) -> Result<i32, i32> {
     // println!("Active parameters:\n{}", params);
 
     format.fourcc = FourCC::new(b"RGB3");
-    format = dev.set_format(&format).unwrap();
+    // format = dev.set_format(&format).unwrap();
+    format = {
+        let this = dev.set_format(&format);
+        match this {
+            Ok(t) => t,
+            Err(e) => {
+                eprintln!("set format {}", e);
+                return Err(-1);
+            }
+        }
+    };
 
     if format.fourcc != FourCC::new(b"RGB3") {
         // fallback to Motion-JPEG
         format.fourcc = FourCC::new(b"MJPG");
-        format = dev.set_format(&format).unwrap();
+        // format = dev.set_format(&format).unwrap();
+        format = {
+            let this = dev.set_format(&format);
+            match this {
+                Ok(t) => t,
+                Err(e) => {
+                    eprintln!("set format {}", e);
+                    return Err(-1);
+                }
+            }
+        };
     }
 
     println!("Active format:\n{}", format);
@@ -460,8 +490,19 @@ fn cam_thread(hists_clone: Arc<AtomicU8>, attempt: i8) -> Result<i32, i32> {
 
     // Create the stream, which will internally 'allocate' (as in map) the
     // number of requested buffers for us.
-    let mut stream = MmapStream::with_buffers(&mut dev, Type::VideoCapture, 1)
-        .expect("Failed to create buffer stream");
+    // let mut stream = MmapStream::with_buffers(&mut dev, Type::VideoCapture, 1)
+    //     .expect("Failed to create buffer stream");
+    
+    let mut stream = {
+        let this = MmapStream::with_buffers(&mut dev, Type::VideoCapture, 1);
+        match this {
+            Ok(t) => t,
+            Err(e) => {
+                eprintln!("Failed to create buffer stream {}", e);
+                return Err(-1);
+            }
+        }
+    };
 
     // At this point, the stream is ready and all buffers are setup.
     // We can now read frames (represented as buffers) by iterating through
@@ -473,9 +514,9 @@ fn cam_thread(hists_clone: Arc<AtomicU8>, attempt: i8) -> Result<i32, i32> {
             match this {
                 Ok(t) => t,
                 Err(e) => {
-                    eprintln!("Camera thread dead: {}",e);
+                    eprintln!("Camera thread dead: {}", e);
                     return Err(-1);
-                },
+                }
             }
         };
         let data = match &format.fourcc.repr {
@@ -488,7 +529,7 @@ fn cam_thread(hists_clone: Arc<AtomicU8>, attempt: i8) -> Result<i32, i32> {
             _ => {
                 eprintln!("invalid buffer pixelformat");
                 return Err(-2);
-            },
+            }
         };
         let img: ImageBuffer<image::Rgb<u8>, Vec<u8>> =
             ImageBuffer::from_raw(format.width, format.height, data).unwrap();
