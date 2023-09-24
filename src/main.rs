@@ -496,9 +496,8 @@ fn cam_thread(hists_clone: Arc<AtomicU8>, attempt: i8) -> Result<i32, i32> {
     //     .expect("Failed to create buffer stream");
 
     eprintln!("starting stream");
-    let count = 4;
     let mut stream = {
-        let this = UserptrStream::with_buffers(&mut dev, Type::VideoCapture, count);
+        let this = UserptrStream::with_buffers(&mut dev, Type::VideoCapture, 1);
         match this {
             Ok(t) => t,
             Err(e) => {
@@ -513,6 +512,7 @@ fn cam_thread(hists_clone: Arc<AtomicU8>, attempt: i8) -> Result<i32, i32> {
     // We can now read frames (represented as buffers) by iterating through
     // the stream. Once an error condition occurs, the iterator will return
     // None.
+    let count = 1;
 
     loop {
         let rstart = Instant::now();
