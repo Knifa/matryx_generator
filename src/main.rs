@@ -12,7 +12,7 @@ use std::{
         Arc,
     },
     thread::{self, sleep},
-    time::{self, Duration},
+    time::{self, Duration, Instant},
 };
 
 use v4l::buffer::Type;
@@ -377,6 +377,7 @@ fn cam_thread_loop(hists_clone: Arc<AtomicU8>) {
             }
         }
         sleep(Duration::from_secs(5));
+        eprint!("cam thread loop slept")
     }
 }
 
@@ -406,6 +407,7 @@ fn cam_thread(hists_clone: Arc<AtomicU8>, attempt: i8) -> Result<i32, i32> {
             }
         }
     };
+    eprintln!("format set");
     // let mut format = dev.format().expect("Failed to read format");
     // let mut params = dev.params().expect("Failed to read params");
 
@@ -445,7 +447,7 @@ fn cam_thread(hists_clone: Arc<AtomicU8>, attempt: i8) -> Result<i32, i32> {
         };
     }
 
-    println!("Active format:\n{}", format);
+    eprintln!("Active format:\n{}", format);
     // println!("Active parameters:\n{}", params);
 
     // The actual format chosen by the device driver may differ from what we
@@ -492,9 +494,10 @@ fn cam_thread(hists_clone: Arc<AtomicU8>, attempt: i8) -> Result<i32, i32> {
     // number of requested buffers for us.
     // let mut stream = MmapStream::with_buffers(&mut dev, Type::VideoCapture, 1)
     //     .expect("Failed to create buffer stream");
-    
+
+    eprintln!("starting stream");
     let mut stream = {
-        let this = MmapStream::with_buffers(&mut dev, Type::VideoCapture, 1);
+        let this = UserptrStream::with_buffers(&mut dev, Type::VideoCapture, 1);
         match this {
             Ok(t) => t,
             Err(e) => {
@@ -503,12 +506,15 @@ fn cam_thread(hists_clone: Arc<AtomicU8>, attempt: i8) -> Result<i32, i32> {
             }
         }
     };
+    eprintln!("stream started");
 
     // At this point, the stream is ready and all buffers are setup.
     // We can now read frames (represented as buffers) by iterating through
     // the stream. Once an error condition occurs, the iterator will return
     // None.
     loop {
+        eprintln!("grab next image");
+        let mut start = Instant::now();
         let (buf, _) = {
             let this = stream.next();
             match this {
@@ -519,6 +525,9 @@ fn cam_thread(hists_clone: Arc<AtomicU8>, attempt: i8) -> Result<i32, i32> {
                 }
             }
         };
+        let duration_us = start.elapsed().as_micros();
+        eprintln!("next image grabbed {}", duration_us);
+        start = Instant::now();
         let data = match &format.fourcc.repr {
             b"RGB3" => buf.to_vec(),
             b"MJPG" => {
@@ -531,11 +540,26 @@ fn cam_thread(hists_clone: Arc<AtomicU8>, attempt: i8) -> Result<i32, i32> {
                 return Err(-2);
             }
         };
+        let duration_us = start.elapsed().as_micros();
+        eprintln!("vectorized, {}", duration_us);
+        start = Instant::now();
         let img: ImageBuffer<image::Rgb<u8>, Vec<u8>> =
             ImageBuffer::from_raw(format.width, format.height, data).unwrap();
+        let duration_us = start.elapsed().as_micros();
+        eprintln!("wrapped to image buffer{}", duration_us);
+        start = Instant::now();
         let luma = DynamicImage::ImageRgb8(img).into_luma8();
+        let duration_us = start.elapsed().as_micros();
+        eprintln!("luma'd {}", duration_us);
+        start = Instant::now();
         let val = percentile(&luma, 90);
+        let duration_us = start.elapsed().as_micros();
+        eprintln!("percentile'd {}", duration_us);
+        start = Instant::now();
         hists_clone.store(val, Ordering::Relaxed);
+        let duration_us = start.elapsed().as_micros();
+        eprintln!("stored {} and {}", val, duration_us);
+        start = Instant::now();
         // println!(
         //     "Buffer size: {}, seq: {}, timestamp: {}",
         //     buf.len(),
