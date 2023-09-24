@@ -512,7 +512,10 @@ fn cam_thread(hists_clone: Arc<AtomicU8>, attempt: i8) -> Result<i32, i32> {
     // We can now read frames (represented as buffers) by iterating through
     // the stream. Once an error condition occurs, the iterator will return
     // None.
+    let count = 1;
+
     loop {
+        let rstart = Instant::now();
         eprintln!("grab next image");
         let mut start = Instant::now();
         let (buf, _) = {
@@ -559,7 +562,7 @@ fn cam_thread(hists_clone: Arc<AtomicU8>, attempt: i8) -> Result<i32, i32> {
         hists_clone.store(val, Ordering::Relaxed);
         let duration_us = start.elapsed().as_micros();
         eprintln!("stored {} and {}", val, duration_us);
-        start = Instant::now();
+        eprintln!("FPS: {}", count as f64 / rstart.elapsed().as_secs_f64());
         // println!(
         //     "Buffer size: {}, seq: {}, timestamp: {}",
         //     buf.len(),
