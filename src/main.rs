@@ -513,11 +513,13 @@ fn cam_thread(hists_clone: Arc<AtomicU8>, attempt: i8) -> Result<i32, i32> {
     // the stream. Once an error condition occurs, the iterator will return
     // None.
     let count = 1;
+    let frame_delay = time::Duration::from_millis(500);
 
     loop {
         let rstart = Instant::now();
         eprintln!("grab next image");
         let mut start = Instant::now();
+        let _ = stream.next();
         let (buf, _) = {
             let this = stream.next();
             match this {
@@ -562,7 +564,9 @@ fn cam_thread(hists_clone: Arc<AtomicU8>, attempt: i8) -> Result<i32, i32> {
         hists_clone.store(val, Ordering::Relaxed);
         let duration_us = start.elapsed().as_micros();
         eprintln!("stored {} and {}", val, duration_us);
-        eprintln!("FPS: {}", count as f64 / rstart.elapsed().as_secs_f64());
+        eprintln!("FPS1: {}", count as f64 / rstart.elapsed().as_secs_f64());
+        thread::sleep(frame_delay);
+        eprintln!("FPS2: {}", count as f64 / rstart.elapsed().as_secs_f64());
         // println!(
         //     "Buffer size: {}, seq: {}, timestamp: {}",
         //     buf.len(),
