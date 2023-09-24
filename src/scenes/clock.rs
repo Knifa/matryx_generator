@@ -1,11 +1,6 @@
 use crate::{Canvas, FrameTick, Scene};
 use chrono::Local;
-use embedded_graphics::{
-    geometry::Point,
-    pixelcolor::{Rgb888},
-    prelude::*,
-    text::Text,
-};
+use embedded_graphics::{geometry::Point, pixelcolor::Rgb888, prelude::*, text::Text};
 use u8g2_fonts::{fonts, U8g2TextStyle};
 
 extern crate chrono;
@@ -19,7 +14,7 @@ impl ClockScene {
         // let mut format_lines = vec!["%H:%M".to_string()];
 
         // ClockScene { format_lines }
-        ClockScene {  }
+        ClockScene {}
     }
 }
 
@@ -47,7 +42,7 @@ impl Scene for ClockScene {
         // );
         // canvas.clear();
         let character_style =
-        U8g2TextStyle::new(fonts::u8g2_font_helvB14_tn, Rgb888::new(255, 255, 255));
+            U8g2TextStyle::new(fonts::u8g2_font_helvB14_tn, Rgb888::new(255, 255, 255));
 
         // Text::new(&times, Point::new(9, 18), text_style)
         Text::new(&times, Point::new(9, 22), character_style)

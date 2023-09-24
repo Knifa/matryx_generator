@@ -5,6 +5,7 @@ use imageproc::stats::percentile;
 use led_matrix_zmq::client::{MatrixClient, MatrixClientSettings};
 
 use jpeg_decoder as jpeg;
+use log2::*;
 use palette::{rgb::Rgb, FromColor, Hsl, IntoColor, Lch, ShiftHue, Srgb};
 use std::{
     sync::{
@@ -313,7 +314,21 @@ fn main() {
         addr: "tcp://localhost:42024".to_string(),
     });
 
-    println!("33");
+    #[cfg(debug_assertions)]
+    let _log2 = log2::open("matryx-debug.txt")
+        .size(100 * 1024 * 1024)
+        .rotate(2)
+        .tee(true)
+        .start();
+
+    #[cfg(not(debug_assertions))]
+    let _log2 = log2::open("matryx-release.txt")
+        .size(100 * 1024 * 1024)
+        .rotate(2)
+        .tee(false)
+        .start();
+
+    warn!("33");
     // let mut canvas_plasma = Canvas::new(64, 32);
     let mut canvas_clock = Canvas::new(64, 32);
     let mut canvas_wave = Canvas::new(64, 32);
@@ -334,7 +349,7 @@ fn main() {
     loop {
         let tick = frame_timer.tick();
         clock_scene.tick(&mut canvas_clock, &tick);
-        //println!("{0}", hists.load(Ordering::Acquire));
+        //warn!("{0}", hists.load(Ordering::Acquire));
         if hists.load(Ordering::Acquire) <= 24 {
             filter_darken(&mut canvas_clock, 0.003922);
             // filter_red(&mut canvas_clock);
@@ -364,10 +379,10 @@ fn cam_thread_loop(hists_clone: Arc<AtomicU8>) {
     loop {
         match cam_thread_ret {
             Ok(v) => {
-                println!("unreachable: {v:?}");
+                warn!("unreachable: {v:?}");
             }
             Err(e) => {
-                println!("Camera Error: {e:?}");
+                warn!("Camera Error: {e:?}");
                 if attempt == std::i8::MAX {
                     attempt = 1;
                 } else {
@@ -377,12 +392,12 @@ fn cam_thread_loop(hists_clone: Arc<AtomicU8>) {
             }
         }
         sleep(Duration::from_secs(5));
-        eprint!("cam thread loop slept")
+        error!("cam thread loop slept")
     }
 }
 
 fn cam_thread(hists_clone: Arc<AtomicU8>, attempt: i8) -> Result<i32, i32> {
-    eprint!("Camera time, Attempt: {}\n", attempt);
+    error!("Camera time, Attempt: {}\n", attempt);
     // let mut dev = Device::new(2).unwrap();
 
     let mut dev = {
@@ -390,7 +405,7 @@ fn cam_thread(hists_clone: Arc<AtomicU8>, attempt: i8) -> Result<i32, i32> {
         match this {
             Ok(t) => t,
             Err(e) => {
-                eprintln!("Device missing: {}", e);
+                error!("Device missing: {}", e);
                 return Err(-1);
             }
         }
@@ -402,12 +417,12 @@ fn cam_thread(hists_clone: Arc<AtomicU8>, attempt: i8) -> Result<i32, i32> {
         match this {
             Ok(t) => t,
             Err(e) => {
-                eprintln!("Failed to read format: {}", e);
+                error!("Failed to read format: {}", e);
                 return Err(-1);
             }
         }
     };
-    eprintln!("format set");
+    error!("format set");
     // let mut format = dev.format().expect("Failed to read format");
     // let mut params = dev.params().expect("Failed to read params");
 
@@ -415,8 +430,8 @@ fn cam_thread(hists_clone: Arc<AtomicU8>, attempt: i8) -> Result<i32, i32> {
     // fmt.height = 720;
     // fmt.fourcc = FourCC::new(b"YUYV");
     // try RGB3 first
-    // println!("Active format:\n{}", format);
-    // println!("Active parameters:\n{}", params);
+    // warn!("Active format:\n{}", format);
+    // warn!("Active parameters:\n{}", params);
 
     format.fourcc = FourCC::new(b"RGB3");
     // format = dev.set_format(&format).unwrap();
@@ -425,7 +440,7 @@ fn cam_thread(hists_clone: Arc<AtomicU8>, attempt: i8) -> Result<i32, i32> {
         match this {
             Ok(t) => t,
             Err(e) => {
-                eprintln!("set format {}", e);
+                error!("set format {}", e);
                 return Err(-1);
             }
         }
@@ -440,15 +455,15 @@ fn cam_thread(hists_clone: Arc<AtomicU8>, attempt: i8) -> Result<i32, i32> {
             match this {
                 Ok(t) => t,
                 Err(e) => {
-                    eprintln!("set format {}", e);
+                    error!("set format {}", e);
                     return Err(-1);
                 }
             }
         };
     }
 
-    eprintln!("Active format:\n{}", format);
-    // println!("Active parameters:\n{}", params);
+    error!("Active format:\n{}", format);
+    // warn!("Active parameters:\n{}", params);
 
     // The actual format chosen by the device driver may differ from what we
     // requested! Print it out to get an idea of what is actually used now.
@@ -456,26 +471,26 @@ fn cam_thread(hists_clone: Arc<AtomicU8>, attempt: i8) -> Result<i32, i32> {
     // let controls = dev.query_controls().unwrap();
 
     // for control in controls {
-    //     println!("{}", control);
+    //     warn!("{}", control);
     // }
 
-    // println!("Available formats:");
+    // warn!("Available formats:");
     // for format in dev.enum_formats().unwrap() {
-    //     println!("  {} ({})", format.fourcc, format.description);
+    //     warn!("  {} ({})", format.fourcc, format.description);
 
     //     for framesize in dev.enum_framesizes(format.fourcc).unwrap() {
     //         for discrete in framesize.size.to_discrete() {
-    //             println!("    Size: {}", discrete);
+    //             warn!("    Size: {}", discrete);
 
     //             for frameinterval in dev
     //                 .enum_frameintervals(framesize.fourcc, discrete.width, discrete.height)
     //                 .unwrap()
     //             {
-    //                 println!("      Interval:  {}", frameinterval);
+    //                 warn!("      Interval:  {}", frameinterval);
     //             }
     //         }
     //     }
-    //     println!();
+    //     warn!();
     // }
 
     // Now we'd like to capture some frames!
@@ -495,18 +510,18 @@ fn cam_thread(hists_clone: Arc<AtomicU8>, attempt: i8) -> Result<i32, i32> {
     // let mut stream = MmapStream::with_buffers(&mut dev, Type::VideoCapture, 1)
     //     .expect("Failed to create buffer stream");
 
-    eprintln!("starting stream");
+    error!("starting stream");
     let mut stream = {
         let this = UserptrStream::with_buffers(&mut dev, Type::VideoCapture, 1);
         match this {
             Ok(t) => t,
             Err(e) => {
-                eprintln!("Failed to create buffer stream {}", e);
+                error!("Failed to create buffer stream {}", e);
                 return Err(-1);
             }
         }
     };
-    eprintln!("stream started");
+    error!("stream started");
 
     // At this point, the stream is ready and all buffers are setup.
     // We can now read frames (represented as buffers) by iterating through
@@ -517,7 +532,7 @@ fn cam_thread(hists_clone: Arc<AtomicU8>, attempt: i8) -> Result<i32, i32> {
 
     loop {
         let rstart = Instant::now();
-        eprintln!("grab next image");
+        debug!("grab next image");
         let mut start = Instant::now();
         let _ = stream.next();
         let (buf, _) = {
@@ -525,13 +540,13 @@ fn cam_thread(hists_clone: Arc<AtomicU8>, attempt: i8) -> Result<i32, i32> {
             match this {
                 Ok(t) => t,
                 Err(e) => {
-                    eprintln!("Camera thread dead: {}", e);
+                    error!("Camera thread dead: {}", e);
                     return Err(-1);
                 }
             }
         };
         let duration_us = start.elapsed().as_micros();
-        eprintln!("next image grabbed {}", duration_us);
+        debug!("next image grabbed {}", duration_us);
         start = Instant::now();
         let data = match &format.fourcc.repr {
             b"RGB3" => buf.to_vec(),
@@ -541,33 +556,33 @@ fn cam_thread(hists_clone: Arc<AtomicU8>, attempt: i8) -> Result<i32, i32> {
                 decoder.decode().expect("failed to decode JPEG")
             }
             _ => {
-                eprintln!("invalid buffer pixelformat");
+                error!("invalid buffer pixelformat");
                 return Err(-2);
             }
         };
         let duration_us = start.elapsed().as_micros();
-        eprintln!("vectorized, {}", duration_us);
+        debug!("vectorized, {}", duration_us);
         start = Instant::now();
         let img: ImageBuffer<image::Rgb<u8>, Vec<u8>> =
             ImageBuffer::from_raw(format.width, format.height, data).unwrap();
         let duration_us = start.elapsed().as_micros();
-        eprintln!("wrapped to image buffer{}", duration_us);
+        debug!("wrapped to image buffer{}", duration_us);
         start = Instant::now();
         let luma = DynamicImage::ImageRgb8(img).into_luma8();
         let duration_us = start.elapsed().as_micros();
-        eprintln!("luma'd {}", duration_us);
+        debug!("luma'd {}", duration_us);
         start = Instant::now();
         let val = percentile(&luma, 90);
         let duration_us = start.elapsed().as_micros();
-        eprintln!("percentile'd {}", duration_us);
+        debug!("percentile'd {}", duration_us);
         start = Instant::now();
         hists_clone.store(val, Ordering::Relaxed);
         let duration_us = start.elapsed().as_micros();
-        eprintln!("stored {} and {}", val, duration_us);
-        eprintln!("FPS1: {}", count as f64 / rstart.elapsed().as_secs_f64());
+        debug!("stored {} and {}", val, duration_us);
+        debug!("FPS1: {}", count as f64 / rstart.elapsed().as_secs_f64());
         thread::sleep(frame_delay);
-        eprintln!("FPS2: {}", count as f64 / rstart.elapsed().as_secs_f64());
-        // println!(
+        debug!("FPS2: {}", count as f64 / rstart.elapsed().as_secs_f64());
+        // warn!(
         //     "Buffer size: {}, seq: {}, timestamp: {}",
         //     buf.len(),
         //     meta.sequence,
@@ -595,14 +610,14 @@ fn cam_thread(hists_clone: Arc<AtomicU8>, attempt: i8) -> Result<i32, i32> {
     //     }) {
     //         Ok(val) => val,
     //         Err(err) => {
-    //             eprint!("{}\n", err);
+    //             error!("{}\n", err);
     //             return Err(-2);
     //         }
     //     };
     //     camera.open_stream().unwrap();
     //     sleep(Duration::from_secs(3)); // otherwise thread does not finish spawning and the method returns (??)
     //                                    // loop {
-    //     eprint!("2");
+    //     error!("2");
     //     // }
     //     return Err(-3); // also returns if thread dies
     // } else {
@@ -612,9 +627,9 @@ fn cam_thread(hists_clone: Arc<AtomicU8>, attempt: i8) -> Result<i32, i32> {
 // CommandsProper::ListDevices => {
 //     let backend = native_api_backend().unwrap();
 //     let devices = query(backend).unwrap();
-//     println!("There are {} available cameras.", devices.len());
+//     warn!("There are {} available cameras.", devices.len());
 //     for device in devices {
-//         println!("{device}");
+//         warn!("{device}");
 //     }
 // }
 // CommandsProper::ListProperties { device, kind } => {

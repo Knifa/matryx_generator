@@ -1,0 +1,18 @@
+[2023-09-24 14:23:38.108] [DEBUG] main: FPS2: 1.2418077569730162
+[2023-09-24 14:23:38.109] [DEBUG] main: grab next image
+[2023-09-24 14:23:38.331] [DEBUG] main: next image grabbed 222622
+[2023-09-24 14:23:38.364] [DEBUG] main: vectorized, 32227
+[2023-09-24 14:23:38.364] [DEBUG] main: wrapped to image buffer1
+[2023-09-24 14:23:38.390] [DEBUG] main: luma'd 26107
+[2023-09-24 14:23:38.401] [DEBUG] main: percentile'd 11310
+[2023-09-24 14:23:38.401] [DEBUG] main: stored 18 and 0
+[2023-09-24 14:23:38.401] [DEBUG] main: FPS1: 3.416573850313162
+[2023-09-24 14:23:38.901] [DEBUG] main: FPS2: 1.2613440840683208
+[2023-09-24 14:23:38.902] [DEBUG] main: grab next image
+[2023-09-24 14:23:39.131] [DEBUG] main: next image grabbed 229627
+[2023-09-24 14:23:39.173] [DEBUG] main: vectorized, 41913
+[2023-09-24 14:23:39.173] [DEBUG] main: wrapped to image buffer1
+[2023-09-24 14:23:39.205] [DEBUG] main: luma'd 31344
+[2023-09-24 14:23:39.218] [DEBUG] main: percentile'd 12829
+[2023-09-24 14:23:39.218] [DEBUG] main: stored 18 and 0
+[2023-09-24 14:23:39.218] [DEBUG] main: FPS1: 3.1618318132052243

@@ -70,7 +70,7 @@ impl SandScene {
         for y in 0..self.map.len() {
             for x in 0..self.map[y].len() {
                 let tile = self.map[y][x];
-                let p = (tile.pressure / 100.0).powf(2.0).clamp(0.0, 1.0);
+                // let p = (tile.pressure / 100.0).powf(2.0).clamp(0.0, 1.0);
 
                 match tile.type_ {
                     TileType::Sand => {

@@ -16,4 +16,5 @@ image = { version = "0.24.7",  default-features = false, features = ["png","jpeg
 imageproc = "0.23.0"
 v4l = "0.14.0"
 jpeg-decoder = "0.3.0"
+log2 = "0.1.9"
 
