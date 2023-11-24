@@ -5,7 +5,6 @@ edition = "2021"
 
 [dependencies]
 led_matrix_zmq = { git = "https://github.com/mmhobi7/led_matrix_zmq.git" }
-# led_matrix_zmq = { path = "../led_matrix_zmq" }
 
 palette = "0.7.3"
 rand = "0.8.5"
