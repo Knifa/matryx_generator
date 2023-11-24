@@ -353,7 +353,7 @@ fn main() {
         if hists.load(Ordering::Acquire) <= 24 {
             filter_darken(&mut canvas_clock, 0.003922);
             // filter_red(&mut canvas_clock);
-            client.send_brightness(100);
+            client.send_brightness(10);
             client.send_frame(canvas_clock.pixels());
         } else {
             scene.tick(&mut canvas_wave, &tick);
@@ -368,7 +368,7 @@ fn main() {
                 shifter = shifter + 1.0;
             }
             filter_hue_shift(&mut canvas_wave, shifter);
-            client.send_brightness(10);
+            client.send_brightness(100);
             client.send_frame(canvas_wave.pixels());
         }
         frame_timer.wait_for_next_frame();
