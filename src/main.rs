@@ -351,7 +351,7 @@ fn main() {
         clock_scene.tick(&mut canvas_clock, &tick);
         //warn!("{0}", hists.load(Ordering::Acquire));
         if hists.load(Ordering::Acquire) <= 24 {
-            filter_darken(&mut canvas_clock, 0.003922);
+            // filter_darken(&mut canvas_clock, 0.003922);
             // filter_red(&mut canvas_clock);
             client.send_brightness(10);
             client.send_frame(canvas_clock.pixels());
