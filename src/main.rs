@@ -339,10 +339,10 @@ fn main() {
     let hists = Arc::new(AtomicU8::new(100));
     let hists_clone = hists.clone();
 
-    // let mut handle_vec = vec![]; // JoinHandles will go in here
+    let mut handle_vec = vec![]; // JoinHandles will go in here
 
-    // let handle = thread::spawn(move || cam_thread_loop(hists_clone));
-    // handle_vec.push(handle); // save the handle so we can call join on it outside of the loop
+    let handle = thread::spawn(move || cam_thread_loop(hists_clone));
+    handle_vec.push(handle); // save the handle so we can call join on it outside of the loop
 
     let mut shifter: f32 = -180.0;
 
