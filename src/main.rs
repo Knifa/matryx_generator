@@ -311,7 +311,7 @@ fn filter_hue_shift(canvas: &mut Canvas, shift: f32) {
 
 fn main() {
     let client = MatrixClient::new(MatrixClientSettings {
-        addr: "tcp://localhost:42024".to_string(),
+        addrs: vec!["tcp://localhost:42024".to_string()],
     });
 
     #[cfg(debug_assertions)]
