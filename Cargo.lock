@@ -569,7 +569,7 @@ checksum = "830d08ce1d1d941e6b30645f1a0eb5643013d835ce3779a5fc208261dbe10f55"
 [[package]]
 name = "led_matrix_zmq"
 version = "0.1.2"
-source = "git+https://github.com/mmhobi7/led_matrix_zmq.git#897156ff6df5cdbce07d5b40e99f40a8e1389b0d"
+source = "git+https://github.com/mmhobi7/led_matrix_zmq.git#e4cd4a29161766ceedff7b72a5c4acc7eee79b5b"
 dependencies = [
  "zmq",
 ]

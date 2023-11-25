@@ -1,2 +1,6 @@
 /target
 *.PNG
+matryx-release.txt
+matryx-release.1.txt
+matryx-debug.txt
+matryx-debug.1.txt

@@ -1,9 +1,0 @@
-[2023-09-24 14:23:39.718] [DEBUG] main: FPS2: 1.2247449642831851
-[2023-09-24 14:23:39.718] [DEBUG] main: grab next image
-[2023-09-24 14:23:39.931] [DEBUG] main: next image grabbed 212980
-[2023-09-24 14:23:39.968] [DEBUG] main: vectorized, 36187
-[2023-09-24 14:23:39.968] [DEBUG] main: wrapped to image buffer1
-[2023-09-24 14:23:39.999] [DEBUG] main: luma'd 31052
-[2023-09-24 14:23:40.011] [DEBUG] main: percentile'd 12031
-[2023-09-24 14:23:40.011] [DEBUG] main: stored 18 and 0
-[2023-09-24 14:23:40.011] [DEBUG] main: FPS1: 3.4159120390352666
