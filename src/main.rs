@@ -134,13 +134,13 @@ impl Canvas {
         }
     }
 
-    fn clear_with_color(&mut self, r: f32, g: f32, b: f32) {
+    fn clear_with_color(&mut self, color: Rgb888) {
         for y in 0..self.height {
             for x in 0..self.width {
-                let index = (y * self.width + x) * 3;
-                self.pixels[index as usize] = (r * 255.0) as u8;
-                self.pixels[index as usize + 1] = (g * 255.0) as u8;
-                self.pixels[index as usize + 2] = (b * 255.0) as u8;
+                let index = (y * self.width + x) * 3 as usize;
+                self.pixels[index] = (color.r() * 255.0) as u8;
+                self.pixels[index + 1] = (color.g() * 255.0) as u8;
+                self.pixels[index + 2] = (color.b() * 255.0) as u8;
             }
         }
     }
@@ -196,9 +196,7 @@ impl DrawTarget for Canvas {
     }
 
     fn clear(&mut self, color: Self::Color) -> Result<(), Self::Error> {
-        // self.clear();
-        self.clear_with_color(color.r() as f32, color.g() as f32, color.b() as f32);
-        // self.fill(&color.into());
+        self.clear_with_color(color);
         Ok(())
     }
 }
@@ -309,6 +307,9 @@ fn filter_hue_shift(canvas: &mut Canvas, shift: f32) {
     }
 }
 
+const CAMERA_ON: bool = true;
+const SHIFTER_START: f32 = -180.0;
+
 fn main() {
     let client = MatrixClient::new(MatrixClientSettings {
         addrs: vec!["tcp://localhost:42024".to_string()],
@@ -319,37 +320,38 @@ fn main() {
         .size(100 * 1024 * 1024)
         .rotate(2)
         .tee(true)
+        .level("trace")
         .start();
 
     #[cfg(not(debug_assertions))]
     let _log2 = log2::open("matryx-release.txt")
         .size(100 * 1024 * 1024)
         .rotate(2)
-        .tee(true)
+        .tee(false)
+        .level("warn")
         .start();
 
-    warn!("33");
-    // let mut canvas_plasma = Canvas::new(64, 32);
+    warn!("Matryx V4");
     let mut canvas_clock = Canvas::new(64, 32);
     let mut canvas_wave = Canvas::new(64, 32);
     let mut frame_timer = FrameTimer::new();
     let mut scene = WaveScene::new(&canvas_wave, 1.0);
     let mut clock_scene: ClockScene = ClockScene::new(&canvas_clock);
-    // let mut plasma_scene: PlasmaScene = PlasmaScene::new(0.1);
     let hists = Arc::new(AtomicU8::new(100));
     let hists_clone = hists.clone();
 
-    // let mut handle_vec = vec![]; // JoinHandles will go in here
+    if CAMERA_ON {
+        let mut handle_vec = vec![]; // JoinHandles will go in here
+        let handle = thread::spawn(move || cam_thread_loop(hists_clone));
+        handle_vec.push(handle); // save the handle so we can call join on it outside of the loop
+    }
 
-    // let handle = thread::spawn(move || cam_thread_loop(hists_clone));
-    // handle_vec.push(handle); // save the handle so we can call join on it outside of the loop
-
-    let mut shifter: f32 = -180.0;
+    let mut shifter: f32 = SHIFTER_START;
 
     loop {
         let tick = frame_timer.tick();
         clock_scene.tick(&mut canvas_clock, &tick);
-        //warn!("{0}", hists.load(Ordering::Acquire));
+        debug!("camera light reading: {0}", hists.load(Ordering::Acquire));
         if hists.load(Ordering::Acquire) <= 24 {
             // filter_darken(&mut canvas_clock, 0.003922);
             // filter_red(&mut canvas_clock);
@@ -362,8 +364,8 @@ fn main() {
             // filter_background(&mut canvas3, &mut canvas2);
             // filter_bright_foreground(&mut canvas4, &mut canvas_wave, 0.01);
             filter_bright_background(&mut canvas_wave, &mut canvas_clock, 0.1);
-            if shifter == 180.0 {
-                shifter = -180.0;
+            if shifter == (SHIFTER_START * (-1.0)) {
+                shifter = SHIFTER_START;
             } else {
                 shifter = shifter + 1.0;
             }
@@ -425,16 +427,6 @@ fn cam_thread(hists_clone: Arc<AtomicU8>, attempt: i8) -> Result<i32, i32> {
         }
     };
     error!("format set");
-    // let mut format = dev.format().expect("Failed to read format");
-    // let mut params = dev.params().expect("Failed to read params");
-
-    // fmt.width = 1280;
-    // fmt.height = 720;
-    // fmt.fourcc = FourCC::new(b"YUYV");
-    // try RGB3 first
-    // warn!("Active format:\n{}", format);
-    // warn!("Active parameters:\n{}", params);
-
     format.fourcc = FourCC::new(b"RGB3");
     // format = dev.set_format(&format).unwrap();
     format = {
@@ -465,52 +457,6 @@ fn cam_thread(hists_clone: Arc<AtomicU8>, attempt: i8) -> Result<i32, i32> {
     }
 
     error!("Active format:\n{}", format);
-    // warn!("Active parameters:\n{}", params);
-
-    // The actual format chosen by the device driver may differ from what we
-    // requested! Print it out to get an idea of what is actually used now.
-
-    // let controls = dev.query_controls().unwrap();
-
-    // for control in controls {
-    //     warn!("{}", control);
-    // }
-
-    // warn!("Available formats:");
-    // for format in dev.enum_formats().unwrap() {
-    //     warn!("  {} ({})", format.fourcc, format.description);
-
-    //     for framesize in dev.enum_framesizes(format.fourcc).unwrap() {
-    //         for discrete in framesize.size.to_discrete() {
-    //             warn!("    Size: {}", discrete);
-
-    //             for frameinterval in dev
-    //                 .enum_frameintervals(framesize.fourcc, discrete.width, discrete.height)
-    //                 .unwrap()
-    //             {
-    //                 warn!("      Interval:  {}", frameinterval);
-    //             }
-    //         }
-    //     }
-    //     warn!();
-    // }
-
-    // Now we'd like to capture some frames!
-    // First, we need to create a stream to read buffers from. We choose a
-    // mapped buffer stream, which uses mmap to directly access the device
-    // frame buffer. No buffers are copied nor allocated, so this is actually
-    // a zero-copy operation.
-
-    // To achieve the best possible performance, you may want to use a
-    // UserBufferStream instance, but this is not supported on all devices,
-    // so we stick to the mapped case for this example.
-    // Please refer to the rustdoc docs for a more detailed explanation about
-    // buffer transfers.
-
-    // Create the stream, which will internally 'allocate' (as in map) the
-    // number of requested buffers for us.
-    // let mut stream = MmapStream::with_buffers(&mut dev, Type::VideoCapture, 1)
-    //     .expect("Failed to create buffer stream");
 
     error!("starting stream");
     let mut stream = {
@@ -584,75 +530,5 @@ fn cam_thread(hists_clone: Arc<AtomicU8>, attempt: i8) -> Result<i32, i32> {
         debug!("FPS1: {}", count as f64 / rstart.elapsed().as_secs_f64());
         thread::sleep(frame_delay);
         debug!("FPS2: {}", count as f64 / rstart.elapsed().as_secs_f64());
-        // warn!(
-        //     "Buffer size: {}, seq: {}, timestamp: {}",
-        //     buf.len(),
-        //     meta.sequence,
-        //     meta.timestamp
-        // );
-        // let val = percentile(buf, 90);
-        // hists_clone.store(val, Ordering::Relaxed);
-
-        // To process the captured data, you can pass it somewhere else.
-        // If you want to modify the data or extend its lifetime, you have to
-        // copy it. This is a best-effort tradeoff solution that allows for
-        // zero-copy readers while enforcing a full clone of the data for
-        // writers.
     }
-
-    // let cameras = query(ApiBackend::Auto).unwrap();
-    // if cameras.len() > 0 {
-    //     // request the absolute highest resolution CameraFormat that can be decoded to RGB.
-    //     let requested: RequestedFormat =
-    //         RequestedFormat::new::<RgbFormat>(RequestedFormatType::AbsoluteHighestResolution);
-    //     // make the camera
-    //     let mut camera = match CallbackCamera::new(CameraIndex::Index(0), requested, move |buf| {
-    //         let val = percentile(&buf.decode_image::<LumaFormat>().unwrap(), 90);
-    //         hists_clone.store(val, Ordering::Relaxed);
-    //     }) {
-    //         Ok(val) => val,
-    //         Err(err) => {
-    //             error!("{}\n", err);
-    //             return Err(-2);
-    //         }
-    //     };
-    //     camera.open_stream().unwrap();
-    //     sleep(Duration::from_secs(3)); // otherwise thread does not finish spawning and the method returns (??)
-    //                                    // loop {
-    //     error!("2");
-    //     // }
-    //     return Err(-3); // also returns if thread dies
-    // } else {
-    // }
 }
-
-// CommandsProper::ListDevices => {
-//     let backend = native_api_backend().unwrap();
-//     let devices = query(backend).unwrap();
-//     warn!("There are {} available cameras.", devices.len());
-//     for device in devices {
-//         warn!("{device}");
-//     }
-// }
-// CommandsProper::ListProperties { device, kind } => {
-//     let index = match device.as_ref().unwrap_or(&IndexKind::Index(0)) {
-//         IndexKind::String(s) => CameraIndex::String(s.clone()),
-//         IndexKind::Index(i) => CameraIndex::Index(*i),
-//     };
-//     let mut camera = Camera::new(
-//         index,
-//         RequestedFormat::new::<RgbFormat>(RequestedFormatType::None),
-//     )
-//     .unwrap();
-//     match kind {
-//         PropertyKind::All => {
-//             camera_print_controls(&camera);
-//             camera_compatible_formats(&mut camera);
-//         }
-//         PropertyKind::Controls => {
-//             camera_print_controls(&camera);
-//         }
-//         PropertyKind::CompatibleFormats => {
-//             camera_compatible_formats(&mut camera);
-//         }
-//     }
