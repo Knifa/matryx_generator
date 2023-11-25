@@ -134,13 +134,13 @@ impl Canvas {
         }
     }
 
-    fn clear_with_color(&mut self, color: Rgb888) {
+    fn clear_with_color(&mut self, r: f32, g: f32, b: f32) {
         for y in 0..self.height {
             for x in 0..self.width {
-                let index = (y * self.width + x) * 3 as usize;
-                self.pixels[index] = (color.r() * 255.0) as u8;
-                self.pixels[index + 1] = (color.g() * 255.0) as u8;
-                self.pixels[index + 2] = (color.b() * 255.0) as u8;
+                let index = ((y * self.width + x) * 3) as usize;
+                self.pixels[index] = (r * 255.0) as u8;
+                self.pixels[index + 1] = (g * 255.0) as u8;
+                self.pixels[index + 2] = (b * 255.0) as u8;
             }
         }
     }
@@ -196,7 +196,7 @@ impl DrawTarget for Canvas {
     }
 
     fn clear(&mut self, color: Self::Color) -> Result<(), Self::Error> {
-        self.clear_with_color(color);
+        self.clear_with_color(color.r() as f32, color.g() as f32, color.b() as f32);
         Ok(())
     }
 }
